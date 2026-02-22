@@ -22,3 +22,10 @@ type ListFilter struct {
 type EventPublisher interface {
 	Publish(ctx context.Context, event Event, tenant Tenant) error
 }
+
+// TransitionValidator checks if a state transition is valid and returns
+// the destination status. Implementations may use an FSM library or
+// any other mechanism to enforce the rules defined in Transitions.
+type TransitionValidator interface {
+	Apply(ctx context.Context, current Status, event Event) (Status, error)
+}

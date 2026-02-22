@@ -3,6 +3,8 @@ package app_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/neomorfeo/tenantiq/internal/app"
@@ -12,8 +14,10 @@ import (
 // --- Mocks ---
 
 type mockRepo struct {
-	tenants map[string]domain.Tenant
-	slugs   map[string]domain.Tenant
+	tenants   map[string]domain.Tenant
+	slugs     map[string]domain.Tenant
+	createErr error
+	updateErr error
 }
 
 func newMockRepo() *mockRepo {
@@ -24,6 +28,9 @@ func newMockRepo() *mockRepo {
 }
 
 func (m *mockRepo) Create(_ context.Context, t domain.Tenant) error {
+	if m.createErr != nil {
+		return m.createErr
+	}
 	m.tenants[t.ID] = t
 	m.slugs[t.Slug] = t
 	return nil
@@ -54,13 +61,17 @@ func (m *mockRepo) List(_ context.Context, _ domain.ListFilter) ([]domain.Tenant
 }
 
 func (m *mockRepo) Update(_ context.Context, t domain.Tenant) error {
+	if m.updateErr != nil {
+		return m.updateErr
+	}
 	m.tenants[t.ID] = t
 	m.slugs[t.Slug] = t
 	return nil
 }
 
 type mockPublisher struct {
-	events []publishedEvent
+	events     []publishedEvent
+	publishErr error
 }
 
 type publishedEvent struct {
@@ -69,8 +80,24 @@ type publishedEvent struct {
 }
 
 func (m *mockPublisher) Publish(_ context.Context, e domain.Event, t domain.Tenant) error {
+	if m.publishErr != nil {
+		return m.publishErr
+	}
 	m.events = append(m.events, publishedEvent{event: e, tenant: t})
 	return nil
+}
+
+// mockValidator implements domain.TransitionValidator using the same
+// domain.Transitions table. This keeps service tests independent of looplab/fsm.
+type mockValidator struct{}
+
+func (m *mockValidator) Apply(_ context.Context, current domain.Status, event domain.Event) (domain.Status, error) {
+	for _, t := range domain.Transitions {
+		if t.Event == event && t.Src == current {
+			return t.Dst, nil
+		}
+	}
+	return "", &domain.TransitionError{Event: event, Current: current}
 }
 
 // --- Tests ---
@@ -78,7 +105,7 @@ func (m *mockPublisher) Publish(_ context.Context, e domain.Event, t domain.Tena
 func TestCreate_Success(t *testing.T) {
 	repo := newMockRepo()
 	pub := &mockPublisher{}
-	svc := app.NewTenantService(repo, pub)
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
 
 	tenant, err := svc.Create(context.Background(), "Acme", "acme", "free")
 	if err != nil {
@@ -116,7 +143,7 @@ func TestCreate_Success(t *testing.T) {
 func TestCreate_DuplicateSlug(t *testing.T) {
 	repo := newMockRepo()
 	pub := &mockPublisher{}
-	svc := app.NewTenantService(repo, pub)
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
 
 	if _, err := svc.Create(context.Background(), "Acme", "acme", "free"); err != nil {
 		t.Fatalf("first create failed: %v", err)
@@ -135,7 +162,7 @@ func TestCreate_DuplicateSlug(t *testing.T) {
 func TestTransition_HappyPath(t *testing.T) {
 	repo := newMockRepo()
 	pub := &mockPublisher{}
-	svc := app.NewTenantService(repo, pub)
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
 
 	tenant, _ := svc.Create(context.Background(), "Acme", "acme", "free")
 
@@ -170,7 +197,7 @@ func TestTransition_HappyPath(t *testing.T) {
 func TestTransition_InvalidEvent(t *testing.T) {
 	repo := newMockRepo()
 	pub := &mockPublisher{}
-	svc := app.NewTenantService(repo, pub)
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
 
 	tenant, _ := svc.Create(context.Background(), "Acme", "acme", "free")
 
@@ -191,10 +218,133 @@ func TestTransition_InvalidEvent(t *testing.T) {
 func TestTransition_NotFound(t *testing.T) {
 	repo := newMockRepo()
 	pub := &mockPublisher{}
-	svc := app.NewTenantService(repo, pub)
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
 
 	_, err := svc.Transition(context.Background(), "nonexistent", domain.EventSuspend)
 	if !errors.Is(err, domain.ErrTenantNotFound) {
 		t.Errorf("expected ErrTenantNotFound, got %v", err)
+	}
+}
+
+// --- GetByID ---
+
+func TestGetByID_Success(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	created, _ := svc.Create(context.Background(), "Acme", "acme", "free")
+
+	got, err := svc.GetByID(context.Background(), created.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.ID != created.ID {
+		t.Errorf("ID = %q, want %q", got.ID, created.ID)
+	}
+}
+
+func TestGetByID_NotFound(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	_, err := svc.GetByID(context.Background(), "nonexistent")
+	if !errors.Is(err, domain.ErrTenantNotFound) {
+		t.Errorf("expected ErrTenantNotFound, got %v", err)
+	}
+}
+
+// --- List ---
+
+func TestList_Success(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	if _, err := svc.Create(context.Background(), "Acme", "acme", "free"); err != nil {
+		t.Fatalf("create Acme: %v", err)
+	}
+	if _, err := svc.Create(context.Background(), "Globex", "globex", "pro"); err != nil {
+		t.Fatalf("create Globex: %v", err)
+	}
+
+	tenants, err := svc.List(context.Background(), domain.ListFilter{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tenants) != 2 {
+		t.Errorf("got %d tenants, want 2", len(tenants))
+	}
+}
+
+// --- Error paths ---
+
+func TestCreate_RepoError(t *testing.T) {
+	repo := newMockRepo()
+	repo.createErr = fmt.Errorf("disk full")
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	_, err := svc.Create(context.Background(), "Acme", "acme", "free")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "creating tenant") {
+		t.Errorf("error = %q, want it to contain 'creating tenant'", err)
+	}
+}
+
+func TestCreate_PublishError(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	// Set publish error after service is wired, before calling Create.
+	pub.publishErr = fmt.Errorf("queue down")
+
+	_, err := svc.Create(context.Background(), "Acme", "acme", "free")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "publishing creation event") {
+		t.Errorf("error = %q, want it to contain 'publishing creation event'", err)
+	}
+}
+
+func TestTransition_UpdateError(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	tenant, _ := svc.Create(context.Background(), "Acme", "acme", "free")
+
+	repo.updateErr = fmt.Errorf("db locked")
+
+	_, err := svc.Transition(context.Background(), tenant.ID, domain.EventProvisionComplete)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "updating tenant") {
+		t.Errorf("error = %q, want it to contain 'updating tenant'", err)
+	}
+}
+
+func TestTransition_PublishError(t *testing.T) {
+	repo := newMockRepo()
+	pub := &mockPublisher{}
+	svc := app.NewTenantService(repo, pub, &mockValidator{})
+
+	tenant, _ := svc.Create(context.Background(), "Acme", "acme", "free")
+
+	// Set publish error after Create succeeds.
+	pub.publishErr = fmt.Errorf("queue down")
+
+	_, err := svc.Transition(context.Background(), tenant.ID, domain.EventProvisionComplete)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "publishing event") {
+		t.Errorf("error = %q, want it to contain 'publishing event'", err)
 	}
 }

@@ -11,13 +11,15 @@ import (
 type TenantService struct {
 	repo      domain.TenantRepository
 	publisher domain.EventPublisher
+	validator domain.TransitionValidator
 }
 
 // NewTenantService creates a service with the given adapters.
-func NewTenantService(repo domain.TenantRepository, publisher domain.EventPublisher) *TenantService {
+func NewTenantService(repo domain.TenantRepository, publisher domain.EventPublisher, validator domain.TransitionValidator) *TenantService {
 	return &TenantService{
 		repo:      repo,
 		publisher: publisher,
+		validator: validator,
 	}
 }
 
@@ -63,15 +65,12 @@ func (s *TenantService) Transition(ctx context.Context, id string, event domain.
 		return domain.Tenant{}, err
 	}
 
-	dst, ok := findTransition(tenant.Status, event)
-	if !ok {
-		return domain.Tenant{}, &domain.TransitionError{
-			Event:   event,
-			Current: tenant.Status,
-		}
+	newStatus, err := s.validator.Apply(ctx, tenant.Status, event)
+	if err != nil {
+		return domain.Tenant{}, err
 	}
 
-	tenant.Status = dst
+	tenant.Status = newStatus
 
 	if err := s.repo.Update(ctx, tenant); err != nil {
 		return domain.Tenant{}, fmt.Errorf("updating tenant: %w", err)
@@ -82,15 +81,4 @@ func (s *TenantService) Transition(ctx context.Context, id string, event domain.
 	}
 
 	return tenant, nil
-}
-
-// findTransition checks if an event is valid from the current status
-// and returns the destination status.
-func findTransition(current domain.Status, event domain.Event) (domain.Status, bool) {
-	for _, t := range domain.Transitions {
-		if t.Event == event && t.Src == current {
-			return t.Dst, true
-		}
-	}
-	return "", false
 }

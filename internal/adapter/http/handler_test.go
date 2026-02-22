@@ -27,6 +27,18 @@ func (p *noopPublisher) Publish(_ context.Context, _ domain.Event, _ domain.Tena
 	return nil
 }
 
+// testValidator implements domain.TransitionValidator for tests.
+type testValidator struct{}
+
+func (v *testValidator) Apply(_ context.Context, current domain.Status, event domain.Event) (domain.Status, error) {
+	for _, t := range domain.Transitions {
+		if t.Event == event && t.Src == current {
+			return t.Dst, nil
+		}
+	}
+	return "", &domain.TransitionError{Event: event, Current: current}
+}
+
 // newTestServer creates a full-stack httptest.Server with SQLite in-memory.
 func newTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
@@ -37,7 +49,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(func() { repo.Close() })
 
-	svc := app.NewTenantService(repo, &noopPublisher{})
+	svc := app.NewTenantService(repo, &noopPublisher{}, &testValidator{})
 
 	router := chi.NewMux()
 	api := humachi.New(router, huma.DefaultConfig("tenantiq", "0.1.0"))

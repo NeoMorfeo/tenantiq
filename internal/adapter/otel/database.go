@@ -19,6 +19,10 @@ func OpenDB(dataSourceName string) (*sql.DB, error) {
 		return nil, fmt.Errorf("opening instrumented database: %w", err)
 	}
 
+	// SQLite performs best with a single connection when sharing the DB
+	// with an embedded job queue (River). This avoids SQLITE_BUSY errors.
+	db.SetMaxOpenConns(1)
+
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		return nil, fmt.Errorf("setting WAL mode: %w", err)
 	}

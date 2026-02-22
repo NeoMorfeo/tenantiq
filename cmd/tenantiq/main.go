@@ -16,11 +16,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/riandyrn/otelchi"
 
+	fsmadapter "github.com/neomorfeo/tenantiq/internal/adapter/fsm"
 	handler "github.com/neomorfeo/tenantiq/internal/adapter/http"
 	otelsetup "github.com/neomorfeo/tenantiq/internal/adapter/otel"
+	riveradapter "github.com/neomorfeo/tenantiq/internal/adapter/river"
 	"github.com/neomorfeo/tenantiq/internal/adapter/sqlite"
 	"github.com/neomorfeo/tenantiq/internal/app"
-	"github.com/neomorfeo/tenantiq/internal/domain"
 )
 
 func main() {
@@ -53,12 +54,22 @@ func run() error {
 		return fmt.Errorf("repository: %w", err)
 	}
 
+	// --- River (async job queue) ---
+	riverClient, err := riveradapter.Setup(context.Background(), db)
+	if err != nil {
+		return fmt.Errorf("river: %w", err)
+	}
+	if err := riverClient.Start(context.Background()); err != nil {
+		return fmt.Errorf("river start: %w", err)
+	}
+
 	// Wrap adapters with tracing decorators.
 	repo := otelsetup.NewTracingRepository(sqliteRepo)
-	publisher := otelsetup.NewTracingPublisher(&noopPublisher{})
+	publisher := otelsetup.NewTracingPublisher(riveradapter.NewPublisher(riverClient))
 
 	// --- Application ---
-	svc := app.NewTenantService(repo, publisher)
+	validator := fsmadapter.New()
+	svc := app.NewTenantService(repo, publisher, validator)
 
 	// --- Adapters (in) ---
 	router := chi.NewMux()
@@ -94,11 +105,15 @@ func run() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Shutdown order: HTTP → River → OTel.
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("http shutdown error", "error", err)
 	}
 
-	// Flush OTel providers (ensure all spans/metrics are exported).
+	if err := riverClient.Stop(ctx); err != nil {
+		slog.Error("river shutdown error", "error", err)
+	}
+
 	if err := providers.Shutdown(ctx); err != nil {
 		slog.Error("otel shutdown error", "error", err)
 	}
@@ -112,17 +127,4 @@ func envOrDefault(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-// noopPublisher is a temporary EventPublisher that does nothing.
-// Will be replaced by River when we implement the async task queue.
-type noopPublisher struct{}
-
-func (p *noopPublisher) Publish(ctx context.Context, event domain.Event, tenant domain.Tenant) error {
-	slog.InfoContext(ctx, "event published",
-		"event", string(event),
-		"tenant_id", tenant.ID,
-		"tenant_slug", tenant.Slug,
-	)
-	return nil
 }
