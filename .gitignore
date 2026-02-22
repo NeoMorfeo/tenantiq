@@ -13,6 +13,7 @@
 # OS
 .DS_Store
 
-# IDE
+# IDE & tools
 .idea/
 .vscode/
+.claude/

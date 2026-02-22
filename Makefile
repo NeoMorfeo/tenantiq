@@ -26,7 +26,11 @@ build:
 # --- Quality ---
 fmt:
 	@echo "==> Formatting..."
+ifeq ($(CI),true)
+	@test -z "$$(gofmt -l .)" || (echo "Unformatted files:" && gofmt -l . && exit 1)
+else
 	gofmt -w .
+endif
 
 vet:
 	@echo "==> Vetting..."
