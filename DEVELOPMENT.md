@@ -20,32 +20,32 @@ This document captures the architecture, design decisions, and conventions of te
 
 tenantiq follows **hexagonal architecture** (ports & adapters). The goal is to keep business logic independent of infrastructure.
 
-```
-┌──────────────────────────────────────────────────────┐
-│                    Adapters (in)                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
-│  │ HTTP/API │  │   CLI    │  │  Worker  │           │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘           │
-│       │              │             │                  │
-│       ▼              ▼             ▼                  │
-│  ┌───────────────────────────────────────┐           │
-│  │         Application Service           │           │
-│  │     (orchestration, use cases)        │           │
-│  └───────────────────┬───────────────────┘           │
-│                      │                                │
-│  ┌───────────────────▼───────────────────┐           │
-│  │              Domain                    │           │
-│  │  (entities, value objects, ports)      │           │
-│  └───────────────────┬───────────────────┘           │
-│                      │                                │
-│       ┌──────────────┼──────────────┐                │
-│       ▼              ▼              ▼                │
-│  ┌─────────┐   ┌──────────┐  ┌───────────┐         │
-│  │ SQLite  │   │  River   │  │  GitHub   │         │
-│  │  Repo   │   │Publisher │  │  Client   │         │
-│  └─────────┘   └──────────┘  └───────────┘         │
-│                 Adapters (out)                        │
-└──────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph in["Adapters (in)"]
+        HTTP["HTTP/API"]
+        CLI["CLI"]
+        Worker["Worker"]
+    end
+
+    subgraph core["Core"]
+        App["Application Service<br/>(orchestration, use cases)"]
+        Domain["Domain<br/>(entities, value objects, ports)"]
+    end
+
+    subgraph out["Adapters (out)"]
+        SQLite["SQLite Repo"]
+        River["River Publisher"]
+        GitHub["GitHub Client"]
+    end
+
+    HTTP --> App
+    CLI --> App
+    Worker --> App
+    App --> Domain
+    Domain --> SQLite
+    Domain --> River
+    Domain --> GitHub
 ```
 
 ### Layer Rules

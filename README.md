@@ -16,16 +16,16 @@ Tenant lifecycle management service. A single Go binary with zero external depen
 
 Tenants follow a strict state machine:
 
-```
-creating ──provision_complete──► active ◄──reactivate── suspended
-                                   │                       │
-                                   │ suspend               │
-                                   ▼                       │
-                                suspended ─────────────────┘
-                                   │
-                           delete  │  (also from active)
-                                   ▼
-                                deleting ──deletion_complete──► deleted
+```mermaid
+stateDiagram-v2
+    [*] --> creating
+    creating --> active : provision_complete
+    active --> suspended : suspend
+    suspended --> active : reactivate
+    active --> deleting : delete
+    suspended --> deleting : delete
+    deleting --> deleted : deletion_complete
+    deleted --> [*]
 ```
 
 ### States
