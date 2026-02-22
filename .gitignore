@@ -1,5 +1,6 @@
 # Build
 /bin/
+/tenantiq
 
 # Coverage
 /coverage/

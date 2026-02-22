@@ -39,6 +39,12 @@ func New(dataSourceName string) (*TenantRepository, error) {
 		return nil, fmt.Errorf("enabling foreign keys: %w", err)
 	}
 
+	return NewFromDB(db)
+}
+
+// NewFromDB wraps an existing database connection, runs migrations, and returns a ready repository.
+// Use this when the *sql.DB has been pre-configured (e.g., with otelsql instrumentation).
+func NewFromDB(db *sql.DB) (*TenantRepository, error) {
 	if err := runMigrations(db); err != nil {
 		return nil, err
 	}
