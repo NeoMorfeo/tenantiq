@@ -44,7 +44,7 @@ lint:
 test:
 	@echo "==> Running tests with coverage..."
 	@mkdir -p $(COVER_DIR)
-	go test ./... -coverprofile=$(COVER_DIR)/coverage.out -covermode=atomic -v
+	go tool gotestsum --junitfile $(COVER_DIR)/junit.xml -- ./... -coverprofile=$(COVER_DIR)/coverage.out -covermode=atomic
 	@echo ""
 	@echo "==> Coverage summary:"
 	@go tool cover -func=$(COVER_DIR)/coverage.out | tail -1
