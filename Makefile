@@ -1,4 +1,4 @@
-.PHONY: all build test cover lint clean dev fmt vet
+.PHONY: all build test cover lint clean dev fmt vet setup
 
 # --- Config ---
 BINARY    := tenantiq
@@ -6,6 +6,16 @@ BUILD_DIR := ./bin
 COVER_DIR := ./coverage
 
 all: fmt vet lint test build
+
+# --- Setup ---
+setup:
+	@echo "==> Setting up development environment..."
+	@echo "  Installing lefthook..."
+	@which lefthook > /dev/null 2>&1 || go install github.com/evilmartians/lefthook@latest
+	lefthook install
+	@echo "  Downloading tool dependencies..."
+	go mod download
+	@echo "==> Done! Pre-commit hooks are active."
 
 # --- Build ---
 build:
@@ -24,7 +34,7 @@ vet:
 
 lint:
 	@echo "==> Linting..."
-	@which golangci-lint > /dev/null 2>&1 && golangci-lint run ./... || echo "  golangci-lint not installed, skipping (install: https://golangci-lint.run)"
+	go tool golangci-lint run ./...
 
 # --- Testing ---
 test:
@@ -68,13 +78,14 @@ clean:
 # --- Help ---
 help:
 	@echo "Available targets:"
+	@echo "  make setup     Install dev tools and git hooks (run once after clone)"
 	@echo "  make all       Run fmt, vet, lint, test, and build"
 	@echo "  make build     Build the binary"
 	@echo "  make test      Run tests with coverage"
 	@echo "  make cover     Run tests and open HTML coverage report"
 	@echo "  make fmt       Format Go code"
 	@echo "  make vet       Run go vet"
-	@echo "  make lint      Run golangci-lint (if installed)"
+	@echo "  make lint      Run golangci-lint"
 	@echo "  make dev       Run in development mode"
 	@echo "  make clean     Remove build artifacts"
 	@echo "  make help      Show this help"

@@ -94,12 +94,12 @@ func TestTransitions_InvalidPaths(t *testing.T) {
 		event domain.Event
 		src   domain.Status
 	}{
-		{domain.EventSuspend, domain.StatusCreating},     // can't suspend before active
-		{domain.EventReactivate, domain.StatusCreating},   // can't reactivate from creating
-		{domain.EventReactivate, domain.StatusActive},     // already active
-		{domain.EventProvisionComplete, domain.StatusActive}, // already provisioned
-		{domain.EventDelete, domain.StatusCreating},       // can't delete during creation
-		{domain.EventDelete, domain.StatusDeleted},        // already deleted
+		{domain.EventSuspend, domain.StatusCreating},
+		{domain.EventReactivate, domain.StatusCreating},
+		{domain.EventReactivate, domain.StatusActive},
+		{domain.EventProvisionComplete, domain.StatusActive},
+		{domain.EventDelete, domain.StatusCreating},
+		{domain.EventDelete, domain.StatusDeleted},
 	}
 
 	for _, tc := range invalid {

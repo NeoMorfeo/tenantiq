@@ -85,6 +85,41 @@ tenantiq/
 └── DEVELOPMENT.md
 ```
 
+## Getting Started
+
+```bash
+# Clone and setup
+git clone https://github.com/NeoMorfeo/tenantiq.git
+cd tenantiq
+make setup    # Installs lefthook hooks + downloads tool dependencies
+```
+
+After `make setup`, every `git commit` automatically runs:
+
+| Check | What it does |
+|-------|-------------|
+| `gofmt` | Verifies Go code formatting |
+| `go vet` | Catches suspicious constructs |
+| `golangci-lint` | Runs 15+ linters via `go tool` (no global install needed) |
+| `go test` | Runs the full test suite |
+
+If any check fails, the commit is rejected. Fix the issue and try again.
+
+### Tool Management
+
+Dev tools are managed through Go's native `tool` directive in `go.mod` — no global installs required (similar to `uv tool` in Python). The only external tool is `lefthook`, which `make setup` installs automatically via `go install`.
+
+```mermaid
+graph LR
+    A["git commit"] --> B["lefthook pre-commit"]
+    B --> C["gofmt"]
+    B --> D["go vet"]
+    B --> E["go tool golangci-lint"]
+    B --> F["go test"]
+    C & D & E & F -->|all pass| G["commit created"]
+    C & D & E & F -->|any fails| H["commit rejected"]
+```
+
 ## Design Decisions
 
 ### 1. Status and Event as typed strings, not iota
@@ -181,10 +216,12 @@ Test mocks are simple structs implementing the port interfaces (~40 lines). No `
 All project operations are driven through the Makefile. Run `make help` to see available targets.
 
 ```bash
+make setup    # Install dev tools and git hooks (run once after clone)
 make          # Run fmt + vet + lint + test + build (full pipeline)
 make test     # Run tests with coverage report
 make cover    # Run tests and open HTML coverage report in browser
 make build    # Build the binary to ./bin/
+make lint     # Run golangci-lint
 make dev      # Run in development mode
 make clean    # Remove build artifacts
 ```

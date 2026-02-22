@@ -1,0 +1,28 @@
+linters:
+  enable:
+    - errcheck       # Unchecked errors
+    - govet          # Suspicious constructs
+    - staticcheck    # Advanced static analysis
+    - unused         # Unused code
+    - gosimple       # Simplifications
+    - ineffassign    # Ineffectual assignments
+    - misspell       # Spelling mistakes in comments/strings
+    - gofmt          # Formatting
+    - revive         # Opinionated linter (replaces golint)
+    - gocritic       # Broad set of checks
+    - errorlint      # Error wrapping issues
+    - bodyclose      # Unclosed HTTP response bodies
+    - noctx          # HTTP requests without context
+    - exhaustive     # Missing enum switch cases
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        disabled: true  # We'll add doc comments incrementally
+  exhaustive:
+    default-signifies-exhaustive: true
+
+issues:
+  exclude-dirs:
+    - web  # React frontend (linted separately)

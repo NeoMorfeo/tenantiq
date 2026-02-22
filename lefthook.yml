@@ -1,0 +1,25 @@
+pre-commit:
+  parallel: true
+  commands:
+    go-fmt:
+      glob: "*.go"
+      run: gofmt -l {staged_files} | xargs -r echo "Unformatted files:" && test -z "$(gofmt -l {staged_files})"
+    go-vet:
+      glob: "*.go"
+      run: go vet ./...
+    go-lint:
+      glob: "*.go"
+      run: go tool golangci-lint run ./...
+    go-test:
+      glob: "*.go"
+      run: go test ./...
+
+    # Future: React/TypeScript hooks
+    # ts-lint:
+    #   glob: "*.{ts,tsx}"
+    #   root: "web/"
+    #   run: npx eslint {staged_files}
+    # ts-typecheck:
+    #   glob: "*.{ts,tsx}"
+    #   root: "web/"
+    #   run: npx tsc --noEmit
