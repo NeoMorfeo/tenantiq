@@ -1,0 +1,18 @@
+# Build
+/bin/
+
+# Coverage
+/coverage/
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
