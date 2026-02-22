@@ -1,3 +1,24 @@
+commit-msg:
+  commands:
+    conventional-commit:
+      run: |
+        msg=$(head -1 {1})
+        if ! echo "$msg" | grep -qE '^(feat|fix|docs|refactor|test|chore|ci|perf|style|build|revert)(\(.+\))?: .+'; then
+          echo "❌ Commit message must follow Conventional Commits format:"
+          echo ""
+          echo "  <type>: <description>"
+          echo ""
+          echo "  Types: feat, fix, docs, refactor, test, chore, ci, perf, style, build, revert"
+          echo ""
+          echo "  Examples:"
+          echo "    feat: add tenant suspension endpoint"
+          echo "    fix(api): handle duplicate slug error"
+          echo "    docs: update architecture diagram"
+          echo ""
+          echo "  Got: $msg"
+          exit 1
+        fi
+
 pre-commit:
   parallel: true
   commands:
