@@ -48,6 +48,129 @@ graph TB
     Domain --> GitHub
 ```
 
+### Port & Adapter Map
+
+In Go there is no inheritance — instead, interfaces define contracts (ports) and structs satisfy them (adapters). The decorator pattern adds cross-cutting concerns like tracing without modifying the original implementation.
+
+```mermaid
+classDiagram
+    direction TB
+
+    namespace Domain {
+        class TenantRepository {
+            <<interface>>
+            +Create(ctx, tenant) error
+            +GetByID(ctx, id) Tenant, error
+            +GetBySlug(ctx, slug) Tenant, error
+            +List(ctx, filter) ~[]Tenant~, error
+            +Update(ctx, tenant) error
+        }
+        class EventPublisher {
+            <<interface>>
+            +Publish(ctx, event, tenant) error
+        }
+        class TransitionValidator {
+            <<interface>>
+            +Apply(ctx, current, event) Status, error
+        }
+        class Tenant {
+            +ID string
+            +Name string
+            +Slug string
+            +Status Status
+            +Plan string
+            +CreatedAt time
+            +UpdatedAt time
+        }
+    }
+
+    namespace Application {
+        class TenantService {
+            -repo TenantRepository
+            -publisher EventPublisher
+            -validator TransitionValidator
+            +Create(ctx, name, slug, plan) Tenant, error
+            +GetByID(ctx, id) Tenant, error
+            +List(ctx, filter) ~[]Tenant~, error
+            +Transition(ctx, id, event) Tenant, error
+        }
+    }
+
+    namespace Adapter_SQLite {
+        class SQLiteRepository {
+            -db *sql.DB
+            +Close() error
+            +DB() *sql.DB
+        }
+    }
+
+    namespace Adapter_River {
+        class RiverPublisher {
+            -client *river.Client
+        }
+        class EventWorker {
+            +Work(ctx, job) error
+        }
+    }
+
+    namespace Adapter_FSM {
+        class FSMValidator {
+        }
+    }
+
+    namespace Adapter_OTel {
+        class TracingRepository {
+            -next TenantRepository
+            -tracer Tracer
+        }
+        class TracingPublisher {
+            -next EventPublisher
+            -tracer Tracer
+        }
+    }
+
+    namespace Adapter_HTTP {
+        class HTTPHandler {
+            +Register(api, svc)$
+        }
+    }
+
+    %% Application depends on domain ports
+    TenantService --> TenantRepository : uses
+    TenantService --> EventPublisher : uses
+    TenantService --> TransitionValidator : uses
+
+    %% Adapters implement domain ports
+    SQLiteRepository ..|> TenantRepository : implements
+    RiverPublisher ..|> EventPublisher : implements
+    FSMValidator ..|> TransitionValidator : implements
+
+    %% Decorators implement AND wrap domain ports
+    TracingRepository ..|> TenantRepository : implements
+    TracingRepository --> TenantRepository : decorates ~next~
+    TracingPublisher ..|> EventPublisher : implements
+    TracingPublisher --> EventPublisher : decorates ~next~
+
+    %% Inbound adapter
+    HTTPHandler --> TenantService : calls
+```
+
+**Runtime composition** (wired in `main.go`):
+
+```mermaid
+graph LR
+    HTTP["HTTP Handler"] --> SVC["TenantService"]
+    SVC --> TR["TracingRepository"]
+    SVC --> TP["TracingPublisher"]
+    SVC --> FSM["FSMValidator"]
+    TR --> SR["SQLiteRepository"]
+    SR --> DB["*sql.DB"]
+    TP --> RP["RiverPublisher"]
+    RP --> RC["river.Client"]
+```
+
+Each decorator implements the same interface as the struct it wraps, so the service never knows about tracing — it only sees the port.
+
 ### Layer Rules
 
 1. **Domain** (`internal/domain/`) — Pure business logic. No imports outside the standard library. Defines entities, value objects, and ports (interfaces).
@@ -66,7 +189,7 @@ tenantiq/
 ├── internal/
 │   ├── domain/            # Core business logic
 │   │   ├── tenant.go      # Tenant entity, states, events, transitions
-│   │   ├── ports.go       # Repository and EventPublisher interfaces
+│   │   ├── ports.go       # Repository, EventPublisher, TransitionValidator interfaces
 │   │   ├── errors.go      # Domain-specific error types
 │   │   └── tenant_test.go
 │   ├── app/               # Application services
@@ -77,7 +200,8 @@ tenantiq/
 │       ├── sqlite/        # TenantRepository (SQLite)
 │       ├── http/          # REST API handlers
 │       ├── river/         # EventPublisher (async queue)
-│       └── otel/          # OpenTelemetry setup
+│       ├── fsm/           # TransitionValidator (looplab/fsm)
+│       └── otel/          # OpenTelemetry setup + tracing decorators
 ├── migrations/            # SQL migrations (goose)
 ├── web/                   # React frontend source
 ├── go.mod
@@ -158,14 +282,15 @@ There is no `Delete` method on `TenantRepository`. Tenants are never removed fro
 
 ### 5. Interfaces at the domain boundary
 
-The domain defines two ports:
+The domain defines three ports:
 
 ```go
 type TenantRepository interface { ... }
 type EventPublisher interface { ... }
+type TransitionValidator interface { ... }
 ```
 
-These are intentionally minimal — only the methods the domain needs. The SQLite adapter may have additional methods (e.g., `RunMigrations`), but those don't leak into the domain interface.
+These are intentionally minimal — only the methods the domain needs. The SQLite adapter may have additional methods (e.g., `Close`, `DB`), but those don't leak into the domain interface.
 
 ### 6. Error types for structured error handling
 
