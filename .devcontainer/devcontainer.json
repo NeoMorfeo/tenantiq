@@ -1,0 +1,39 @@
+{
+  "name": "tenantiq",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.25"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24",
+      "installYarn": false,
+      "installBun": false
+    }
+  },
+
+  "postCreateCommand": "corepack enable && make setup",
+
+  "forwardPorts": [8019, 5173],
+  "portsAttributes": {
+    "8019": { "label": "API" },
+    "5173": { "label": "Vite HMR" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "vitest.explorer"
+      ],
+      "settings": {
+        "go.coverOnTestPackage": true,
+        "go.coverOnSave": true,
+        "vitest.rootConfig": "web/vitest.config.ts"
+      }
+    }
+  }
+}
