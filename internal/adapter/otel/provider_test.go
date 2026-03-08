@@ -18,6 +18,10 @@ func TestSetup_StdoutExporter(t *testing.T) {
 		t.Fatalf("Setup failed: %v", err)
 	}
 
+	if providers.LoggerProvider == nil {
+		t.Fatal("LoggerProvider is nil")
+	}
+
 	if err := providers.Shutdown(context.Background()); err != nil {
 		t.Fatalf("Shutdown failed: %v", err)
 	}

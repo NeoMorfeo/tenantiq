@@ -1,4 +1,4 @@
-.PHONY: all build test cover lint clean dev fmt vet setup otel otel-stop help
+.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help
 .DEFAULT_GOAL := help
 
 # --- Config ---
@@ -63,15 +63,25 @@ dev: ## Run in development mode (with default dev JWT secret)
 	TENANTIQ_JWT_SECRET="tenantiq-dev-secret-do-not-use-in-production" \
 	go run ./cmd/tenantiq
 
+dev-otel: ## Run in development mode with OTel exporting to LGTM stack
+	@echo "==> Running in development mode (OTel → LGTM)..."
+	TENANTIQ_JWT_SECRET="tenantiq-dev-secret-do-not-use-in-production" \
+	OTEL_EXPORTER=otlp \
+	go run ./cmd/tenantiq
+
 # --- Observability ---
-otel: ## Start Grafana LGTM stack (Docker)
+otel: ## Start Grafana LGTM stack with tenantiq dashboard
 	@echo "==> Starting Grafana LGTM stack (Loki, Grafana, Tempo, Mimir)..."
-	$(CONTAINER) run -d --name tenantiq-otel -p 3000:3000 -p 4317:4317 -p 4318:4318 grafana/otel-lgtm
-	@echo "  Grafana:   http://localhost:3000"
+	$(CONTAINER) run -d --name tenantiq-otel \
+		-p 3000:3000 -p 4317:4317 -p 4318:4318 \
+		-v $(CURDIR)/deploy/grafana/provisioning/dashboards/tenantiq.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/tenantiq.yaml \
+		-v $(CURDIR)/deploy/grafana/dashboards:/var/lib/grafana/dashboards/tenantiq \
+		grafana/otel-lgtm
+	@echo "  Grafana:   http://localhost:3000  (dashboard: tenantiq - API Overview)"
 	@echo "  OTLP gRPC: localhost:4317"
 	@echo "  OTLP HTTP: localhost:4318"
 	@echo ""
-	@echo "  Run with: OTEL_EXPORTER=otlp make dev"
+	@echo "  Run with: make dev-otel"
 
 otel-stop: ## Stop Grafana LGTM stack
 	@echo "==> Stopping Grafana LGTM stack..."

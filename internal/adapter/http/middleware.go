@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/url"
 	"strings"
@@ -71,6 +72,7 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 		// Extract Bearer token from Authorization header.
 		header := ctx.Header("Authorization")
 		if header == "" || !strings.HasPrefix(header, "Bearer ") {
+			slog.WarnContext(ctx.Context(), "auth: missing or invalid header", "operation", op.OperationID)
 			_ = huma.WriteErr(api, ctx, 401, "missing or invalid authorization header")
 			return
 		}
@@ -79,6 +81,7 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 
 		claims, err := tokens.ValidateAccess(token)
 		if err != nil {
+			slog.WarnContext(ctx.Context(), "auth: invalid or expired token", "operation", op.OperationID)
 			_ = huma.WriteErr(api, ctx, 401, "invalid or expired token")
 			return
 		}
@@ -96,6 +99,8 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 					}
 				}
 				if !allowed {
+					slog.WarnContext(ctx.Context(), "auth: insufficient permissions",
+						"operation", op.OperationID, "role", string(claims.Role), "user_id", claims.UserID)
 					_ = huma.WriteErr(api, ctx, 403, "insufficient permissions")
 					return
 				}

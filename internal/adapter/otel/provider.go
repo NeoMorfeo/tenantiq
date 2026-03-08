@@ -6,11 +6,14 @@ import (
 	"os"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -40,7 +43,8 @@ func ConfigFromEnv() Config {
 
 // Providers holds initialized OTel providers and their shutdown function.
 type Providers struct {
-	Shutdown func(ctx context.Context) error
+	LoggerProvider *sdklog.LoggerProvider
+	Shutdown       func(ctx context.Context) error
 }
 
 // Setup initializes TracerProvider and MeterProvider based on Config.
@@ -68,6 +72,11 @@ func Setup(ctx context.Context, cfg Config) (*Providers, error) {
 		return nil, fmt.Errorf("creating meter provider: %w", err)
 	}
 
+	lp, err := newLoggerProvider(ctx, cfg, res)
+	if err != nil {
+		return nil, fmt.Errorf("creating logger provider: %w", err)
+	}
+
 	// Register globally so any package can obtain a tracer via otel.Tracer("name").
 	otel.SetTracerProvider(tp)
 	otel.SetMeterProvider(mp)
@@ -84,13 +93,16 @@ func Setup(ctx context.Context, cfg Config) (*Providers, error) {
 		if err := mp.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("meter shutdown: %w", err))
 		}
+		if err := lp.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("logger shutdown: %w", err))
+		}
 		if len(errs) > 0 {
 			return fmt.Errorf("otel shutdown: %v", errs)
 		}
 		return nil
 	}
 
-	return &Providers{Shutdown: shutdown}, nil
+	return &Providers{LoggerProvider: lp, Shutdown: shutdown}, nil
 }
 
 func newTracerProvider(ctx context.Context, cfg Config, res *resource.Resource) (*trace.TracerProvider, error) {
@@ -144,6 +156,33 @@ func newMeterProvider(ctx context.Context, cfg Config, res *resource.Resource) (
 	return metric.NewMeterProvider(
 		metric.WithResource(res),
 		metric.WithReader(metric.NewPeriodicReader(exporter)),
+	), nil
+}
+
+func newLoggerProvider(ctx context.Context, cfg Config, res *resource.Resource) (*sdklog.LoggerProvider, error) {
+	var exporter sdklog.Exporter
+	var err error
+
+	switch cfg.Exporter {
+	case "otlp":
+		var opts []otlploghttp.Option
+		if cfg.Insecure {
+			opts = append(opts, otlploghttp.WithInsecure())
+		}
+		exporter, err = otlploghttp.New(ctx, opts...)
+	case "stdout":
+		exporter, err = stdoutlog.New()
+	default:
+		return nil, fmt.Errorf("unsupported exporter: %q (use \"stdout\" or \"otlp\")", cfg.Exporter)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
 	), nil
 }
 

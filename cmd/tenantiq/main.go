@@ -14,6 +14,8 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/lmittmann/tint"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	bcryptadapter "github.com/neomorfeo/tenantiq/internal/adapter/bcrypt"
@@ -50,6 +52,15 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("otel: %w", err)
 	}
+
+	// Wire slog to both terminal (colorized with trace_id) and OTel (→ Loki via OTLP).
+	consoleHandler := otelsetup.NewTracedHandler(tint.NewHandler(os.Stderr, &tint.Options{
+		TimeFormat: time.Kitchen,
+	}))
+	otelHandler := otelslog.NewHandler("tenantiq",
+		otelslog.WithLoggerProvider(providers.LoggerProvider),
+	)
+	slog.SetDefault(slog.New(otelsetup.NewMultiHandler(consoleHandler, otelHandler)))
 
 	// --- Adapters (out) ---
 	db, err := otelsetup.OpenDB(dbPath)

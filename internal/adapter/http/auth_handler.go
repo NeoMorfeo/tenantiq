@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -48,10 +49,13 @@ func RegisterAuth(api huma.API, authSvc *app.AuthService) {
 		pair, err := authSvc.Login(ctx, input.Body.Email, input.Body.Password)
 		if err != nil {
 			if errors.Is(err, domain.ErrInvalidCredentials) {
+				slog.WarnContext(ctx, "login failed: invalid credentials", "email", input.Body.Email)
 				return nil, huma.Error401Unauthorized("invalid email or password")
 			}
+			slog.ErrorContext(ctx, "login failed: internal error", "email", input.Body.Email, "error", err)
 			return nil, huma.Error500InternalServerError("internal server error")
 		}
+		slog.InfoContext(ctx, "login successful", "email", input.Body.Email)
 		return &LoginOutput{Body: pair}, nil
 	})
 
