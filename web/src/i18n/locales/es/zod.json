@@ -1,0 +1,35 @@
+{
+  "errors": {
+    "invalid_type": "Se esperaba {{expected}}, se recibió {{received}}",
+    "invalid_type_received_undefined": "Obligatorio",
+    "invalid_type_received_null": "Obligatorio",
+    "invalid_enum_value": "Valor no válido. Se esperaba {{options}}, se recibió '{{received}}'",
+    "invalid_string": {
+      "email": "Email no válido",
+      "url": "URL no válida",
+      "regex": "Formato no válido"
+    },
+    "too_small": {
+      "string": {
+        "inclusive": "Debe tener al menos {{minimum}} caracteres"
+      },
+      "number": {
+        "inclusive": "Debe ser al menos {{minimum}}"
+      },
+      "array": {
+        "inclusive": "Debe contener al menos {{minimum}} elemento(s)"
+      }
+    },
+    "too_big": {
+      "string": {
+        "inclusive": "Debe tener como máximo {{maximum}} caracteres"
+      },
+      "number": {
+        "inclusive": "Debe ser como máximo {{maximum}}"
+      },
+      "array": {
+        "inclusive": "Debe contener como máximo {{maximum}} elemento(s)"
+      }
+    }
+  }
+}

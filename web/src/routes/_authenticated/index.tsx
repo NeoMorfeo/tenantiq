@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: DashboardPage,
@@ -32,25 +33,26 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 };
 
 function DashboardPage() {
+  const { t } = useTranslation();
   const { data: tenants, isLoading } = useListTenants();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tenants</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("tenants.title")}</h1>
           <p className="text-muted-foreground">
-            Manage your tenant lifecycle
+            {t("tenants.description")}
           </p>
         </div>
-        <Button>Create Tenant</Button>
+        <Button>{t("tenants.createTenant")}</Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Tenants</CardTitle>
+          <CardTitle>{t("tenants.allTenants")}</CardTitle>
           <CardDescription>
-            {tenants ? `${tenants.length} tenant(s)` : "Loading..."}
+            {tenants ? t("tenants.count", { count: tenants.length }) : t("common.loading")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -64,11 +66,11 @@ function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{t("common.name")}</TableHead>
+                  <TableHead>{t("tenants.slug")}</TableHead>
+                  <TableHead>{t("tenants.plan")}</TableHead>
+                  <TableHead>{t("tenants.status")}</TableHead>
+                  <TableHead>{t("common.created")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -96,7 +98,7 @@ function DashboardPage() {
                 {tenants?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No tenants yet. Create your first one.
+                      {t("tenants.empty")}
                     </TableCell>
                   </TableRow>
                 )}

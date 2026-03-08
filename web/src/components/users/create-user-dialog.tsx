@@ -18,12 +18,14 @@ import {
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const ROLES = ["superadmin", "admin", "viewer"] as const;
 
 type CreateUserForm = z.infer<typeof CreateUserBody>;
 
 export const CreateUserDialog = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const createMutation = useCreateUser();
@@ -49,16 +51,16 @@ export const CreateUserDialog = () => {
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) form.reset(); }}>
       <DialogTrigger render={<Button />}>
-        <Plus className="mr-1 h-4 w-4" /> Create User
+        <Plus className="mr-1 h-4 w-4" /> {t("users.createUser")}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create User</DialogTitle>
-          <DialogDescription>Add a new user account.</DialogDescription>
+          <DialogTitle>{t("users.createUser")}</DialogTitle>
+          <DialogDescription>{t("users.createDescription")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(handleCreate)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="create-email">Email</Label>
+            <Label htmlFor="create-email">{t("common.email")}</Label>
             <Input
               id="create-email"
               type="email"
@@ -69,7 +71,7 @@ export const CreateUserDialog = () => {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-name">Name</Label>
+            <Label htmlFor="create-name">{t("common.name")}</Label>
             <Input
               id="create-name"
               {...form.register("name")}
@@ -79,7 +81,7 @@ export const CreateUserDialog = () => {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-password">Password</Label>
+            <Label htmlFor="create-password">{t("login.password")}</Label>
             <Input
               id="create-password"
               type="password"
@@ -90,7 +92,7 @@ export const CreateUserDialog = () => {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-role">Role</Label>
+            <Label htmlFor="create-role">{t("common.role")}</Label>
             <select
               id="create-role"
               {...form.register("role")}
@@ -98,19 +100,19 @@ export const CreateUserDialog = () => {
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {t(`roles.${r}`)}
                 </option>
               ))}
             </select>
           </div>
           {createMutation.isError && (
             <p className="text-sm text-destructive">
-              Failed to create user. Email may already be in use.
+              {t("users.createError")}
             </p>
           )}
           <DialogFooter>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create"}
+              {createMutation.isPending ? t("common.creating") : t("common.create")}
             </Button>
           </DialogFooter>
         </form>

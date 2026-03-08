@@ -47,7 +47,7 @@ describe("UsersPage", () => {
       expect(screen.getByText("Admin")).toBeInTheDocument();
     });
     expect(screen.getByText("Viewer")).toBeInTheDocument();
-    expect(screen.getByText("2 user(s)")).toBeInTheDocument();
+    expect(screen.getByText("2 users")).toBeInTheDocument();
   });
 
   it("shows empty state when no users", async () => {

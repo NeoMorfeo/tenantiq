@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import iconSvg from "@/assets/icon.svg";
 
 export const Route = createFileRoute("/login")({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
   const loginMutation = useLogin();
@@ -47,12 +49,12 @@ function LoginPage() {
           <CardTitle className="text-2xl">
             tenant<span className="text-primary">iq</span>
           </CardTitle>
-          <CardDescription>Sign in to manage your tenants</CardDescription>
+          <CardDescription>{t("login.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("login.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -63,7 +65,7 @@ function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("login.password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -74,7 +76,7 @@ function LoginPage() {
             </div>
             {loginMutation.isError && (
               <p className="text-sm text-destructive">
-                Invalid email or password
+                {t("login.error")}
               </p>
             )}
             <Button
@@ -82,7 +84,7 @@ function LoginPage() {
               className="w-full"
               disabled={loginMutation.isPending}
             >
-              {loginMutation.isPending ? "Signing in..." : "Sign in"}
+              {loginMutation.isPending ? t("login.submitting") : t("login.submit")}
             </Button>
           </form>
         </CardContent>

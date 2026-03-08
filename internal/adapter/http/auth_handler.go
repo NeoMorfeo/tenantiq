@@ -10,6 +10,7 @@ import (
 
 	"github.com/neomorfeo/tenantiq/internal/app"
 	"github.com/neomorfeo/tenantiq/internal/domain"
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 )
 
 // --- Login ---
@@ -56,14 +57,15 @@ func RegisterAuth(api huma.API, authSvc *app.AuthService, tokens domain.TokenSer
 		Summary:     "Authenticate with email and password",
 		Tags:        []string{"Auth"},
 	}, func(ctx context.Context, input *LoginInput) (*LoginOutput, error) {
+		l := i18n.Localizer(ctx)
 		pair, err := authSvc.Login(ctx, input.Body.Email, input.Body.Password)
 		if err != nil {
 			if errors.Is(err, domain.ErrInvalidCredentials) {
 				slog.WarnContext(ctx, "login failed: invalid credentials", "email", input.Body.Email)
-				return nil, huma.Error401Unauthorized("invalid email or password")
+				return nil, huma.Error401Unauthorized(i18n.T(l, "error.invalid_credentials", nil))
 			}
 			slog.ErrorContext(ctx, "login failed: internal error", "email", input.Body.Email, "error", err)
-			return nil, huma.Error500InternalServerError("internal server error")
+			return nil, huma.Error500InternalServerError(i18n.T(l, "error.internal", nil))
 		}
 
 		// Set HttpOnly cookies for SPA auth.
@@ -82,6 +84,7 @@ func RegisterAuth(api huma.API, authSvc *app.AuthService, tokens domain.TokenSer
 		Summary:     "Refresh an access token",
 		Tags:        []string{"Auth"},
 	}, func(ctx context.Context, input *RefreshInput) (*RefreshOutput, error) {
+		l := i18n.Localizer(ctx)
 		refreshToken := input.Body.RefreshToken
 
 		// Fall back to cookie if no token in body (SPA flow).
@@ -89,15 +92,15 @@ func RegisterAuth(api huma.API, authSvc *app.AuthService, tokens domain.TokenSer
 			refreshToken = cookieValue(ctx, refreshCookieName)
 		}
 		if refreshToken == "" {
-			return nil, huma.Error401Unauthorized("missing refresh token")
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.missing_refresh_token", nil))
 		}
 
 		pair, err := authSvc.Refresh(ctx, refreshToken)
 		if err != nil {
 			if errors.Is(err, domain.ErrUnauthorized) {
-				return nil, huma.Error401Unauthorized("invalid or expired refresh token")
+				return nil, huma.Error401Unauthorized(i18n.T(l, "error.invalid_refresh_token", nil))
 			}
-			return nil, huma.Error500InternalServerError("internal server error")
+			return nil, huma.Error500InternalServerError(i18n.T(l, "error.internal", nil))
 		}
 
 		if w := responseWriter(ctx); w != nil {
@@ -128,9 +131,10 @@ func RegisterAuth(api huma.API, authSvc *app.AuthService, tokens domain.TokenSer
 		Tags:        []string{"Auth"},
 		Security:    BearerSecurity,
 	}, func(ctx context.Context, _ *struct{}) (*MeOutput, error) {
+		l := i18n.Localizer(ctx)
 		claims, ok := ClaimsFromContext(ctx)
 		if !ok {
-			return nil, huma.Error401Unauthorized("not authenticated")
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.not_authenticated", nil))
 		}
 		out := &MeOutput{}
 		out.Body.UserID = claims.UserID

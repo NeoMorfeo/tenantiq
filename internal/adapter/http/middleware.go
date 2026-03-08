@@ -13,6 +13,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/neomorfeo/tenantiq/internal/domain"
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 )
 
 const claimsKey ctxKey = "claims"
@@ -75,16 +76,18 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 			token = strings.TrimPrefix(header, "Bearer ")
 		}
 
+		l := i18n.Localizer(ctx.Context())
+
 		if token == "" {
 			slog.WarnContext(ctx.Context(), "auth: missing credentials", "operation", op.OperationID)
-			_ = huma.WriteErr(api, ctx, 401, "missing or invalid authorization")
+			_ = huma.WriteErr(api, ctx, 401, i18n.T(l, "error.missing_authorization", nil))
 			return
 		}
 
 		claims, err := tokens.ValidateAccess(token)
 		if err != nil {
 			slog.WarnContext(ctx.Context(), "auth: invalid or expired token", "operation", op.OperationID)
-			_ = huma.WriteErr(api, ctx, 401, "invalid or expired token")
+			_ = huma.WriteErr(api, ctx, 401, i18n.T(l, "error.invalid_token", nil))
 			return
 		}
 
@@ -103,7 +106,7 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 				if !allowed {
 					slog.WarnContext(ctx.Context(), "auth: insufficient permissions",
 						"operation", op.OperationID, "role", string(claims.Role), "user_id", claims.UserID)
-					_ = huma.WriteErr(api, ctx, 403, "insufficient permissions")
+					_ = huma.WriteErr(api, ctx, 403, i18n.T(l, "error.insufficient_permissions", nil))
 					return
 				}
 			}

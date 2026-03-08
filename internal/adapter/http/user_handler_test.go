@@ -285,3 +285,222 @@ func TestUserHandler_DeleteUser_NotFound(t *testing.T) {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusNotFound)
 	}
 }
+
+// --- Password Update ---
+
+// newFullTestServer creates a test server with auth middleware, user endpoints,
+// password update, and auth endpoints (login, refresh, me).
+func newFullTestServer(t *testing.T) (*httptest.Server, string) {
+	t.Helper()
+
+	repo, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatalf("creating test repo: %v", err)
+	}
+	t.Cleanup(func() { repo.Close() })
+
+	userRepo := sqlite.NewUserRepository(repo.DB())
+	hasher := &testHasher{}
+	tokens := &mockTokenService{}
+	userSvc := app.NewUserService(userRepo, hasher)
+	authSvc := app.NewAuthService(userRepo, hasher, tokens)
+
+	router := chi.NewMux()
+	router.Use(adapter.InjectHTTP)
+	api := humachi.New(router, huma.DefaultConfig("test", "1.0.0"))
+	api.UseMiddleware(adapter.NewHumaAuthMiddleware(api, tokens))
+	adapter.RegisterUsers(api, userSvc)
+	adapter.RegisterPasswordUpdate(api, userSvc)
+	adapter.RegisterAuth(api, authSvc, tokens, adapter.CookieConfig{})
+
+	admin, err := userSvc.CreateUser(context.Background(), "admin@example.com", "Admin", "pass", domain.RoleSuperAdmin)
+	if err != nil {
+		t.Fatalf("seeding admin: %v", err)
+	}
+
+	srv := httptest.NewServer(router)
+	t.Cleanup(srv.Close)
+
+	return srv, admin.ID
+}
+
+func TestUserHandler_UpdatePassword_Forbidden(t *testing.T) {
+	srv, adminID := newFullTestServer(t)
+
+	// "valid-token" gives UserID "u-1" which differs from adminID → 403.
+	body := `{"current_password":"pass","new_password":"newpass123"}`
+	resp := doAuthRequest(t, http.MethodPut, srv.URL+"/api/v1/users/"+adminID+"/password", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusForbidden)
+	}
+}
+
+func TestUserHandler_UpdatePassword_SelfOnly(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	// "valid-token" gives UserID "u-1", trying to change "u-2" password → 403.
+	body := `{"current_password":"pass","new_password":"newpass123"}`
+	resp := doAuthRequest(t, http.MethodPut, srv.URL+"/api/v1/users/u-2/password", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusForbidden)
+	}
+}
+
+func TestUserHandler_UpdatePassword_Unauthenticated(t *testing.T) {
+	srv, adminID := newFullTestServer(t)
+
+	body := `{"current_password":"pass","new_password":"newpass123"}`
+	resp := doAuthRequest(t, http.MethodPut, srv.URL+"/api/v1/users/"+adminID+"/password", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestUserHandler_UpdatePassword_WrongCurrentPassword(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	// "valid-token" gives UserID "u-1"; update password for "u-1".
+	// User "u-1" doesn't exist in DB → will hit toUserError (user not found).
+	body := `{"current_password":"wrongpass","new_password":"newpass123"}`
+	resp := doAuthRequest(t, http.MethodPut, srv.URL+"/api/v1/users/u-1/password", body, "valid-token")
+	defer resp.Body.Close()
+
+	// User "u-1" doesn't exist in DB, so we get 404 (user not found) from toUserError.
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusNotFound)
+	}
+}
+
+// --- Auth Handler (Login) ---
+
+func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	body := `{"email":"admin@example.com","password":"wrongpassword"}`
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/login", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthHandler_Login_NonexistentUser(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	body := `{"email":"nobody@example.com","password":"somepassword"}`
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/login", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthHandler_Login_Success(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	body := `{"email":"admin@example.com","password":"pass"}`
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/login", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var pair app.TokenPair
+	if err := json.NewDecoder(resp.Body).Decode(&pair); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if pair.AccessToken == "" {
+		t.Error("AccessToken should not be empty")
+	}
+	if pair.RefreshToken == "" {
+		t.Error("RefreshToken should not be empty")
+	}
+}
+
+// --- Auth Handler (Refresh) ---
+
+func TestAuthHandler_Refresh_MissingToken(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	// Empty body, no cookie → missing refresh token.
+	body := `{}`
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthHandler_Refresh_InvalidToken(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	body := `{"refresh_token":"invalid-refresh-token"}`
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+// --- Auth Handler (Me) ---
+
+func TestAuthHandler_Me_Authenticated(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	resp := doAuthRequest(t, http.MethodGet, srv.URL+"/api/v1/auth/me", "", "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var out struct {
+		UserID string      `json:"user_id"`
+		Email  string      `json:"email"`
+		Role   domain.Role `json:"role"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if out.UserID != "u-1" {
+		t.Errorf("UserID = %q, want %q", out.UserID, "u-1")
+	}
+	if out.Email != "admin@example.com" {
+		t.Errorf("Email = %q, want %q", out.Email, "admin@example.com")
+	}
+}
+
+func TestAuthHandler_Me_Unauthenticated(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	resp := doAuthRequest(t, http.MethodGet, srv.URL+"/api/v1/auth/me", "", "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+// --- Auth Handler (Logout) ---
+
+func TestAuthHandler_Logout(t *testing.T) {
+	srv, _ := newFullTestServer(t)
+
+	resp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/auth/logout", "", "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusNoContent)
+	}
+}

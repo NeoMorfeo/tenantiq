@@ -9,6 +9,7 @@ import (
 
 	"github.com/neomorfeo/tenantiq/internal/app"
 	"github.com/neomorfeo/tenantiq/internal/domain"
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 )
 
 // TenantResponse is the API representation of a tenant.
@@ -95,7 +96,7 @@ func Register(api huma.API, svc *app.TenantService) {
 	}, func(ctx context.Context, input *CreateTenantInput) (*CreateTenantOutput, error) {
 		tenant, err := svc.Create(ctx, input.Body.Name, input.Body.Slug, input.Body.Plan)
 		if err != nil {
-			return nil, toHumaError(err)
+			return nil, toHumaError(ctx, err)
 		}
 		return &CreateTenantOutput{Body: toTenantResponse(tenant)}, nil
 	})
@@ -110,7 +111,7 @@ func Register(api huma.API, svc *app.TenantService) {
 	}, func(ctx context.Context, input *GetTenantInput) (*GetTenantOutput, error) {
 		tenant, err := svc.GetByID(ctx, input.ID)
 		if err != nil {
-			return nil, toHumaError(err)
+			return nil, toHumaError(ctx, err)
 		}
 		return &GetTenantOutput{Body: toTenantResponse(tenant)}, nil
 	})
@@ -134,7 +135,7 @@ func Register(api huma.API, svc *app.TenantService) {
 
 		tenants, err := svc.List(ctx, filter)
 		if err != nil {
-			return nil, toHumaError(err)
+			return nil, toHumaError(ctx, err)
 		}
 
 		resp := make([]TenantResponse, len(tenants))
@@ -154,27 +155,32 @@ func Register(api huma.API, svc *app.TenantService) {
 	}, func(ctx context.Context, input *TransitionInput) (*TransitionOutput, error) {
 		tenant, err := svc.Transition(ctx, input.ID, domain.Event(input.Body.Event))
 		if err != nil {
-			return nil, toHumaError(err)
+			return nil, toHumaError(ctx, err)
 		}
 		return &TransitionOutput{Body: toTenantResponse(tenant)}, nil
 	})
 }
 
 // toHumaError translates domain errors to Huma HTTP errors.
-func toHumaError(err error) error {
+func toHumaError(ctx context.Context, err error) error {
+	l := i18n.Localizer(ctx)
+
 	if errors.Is(err, domain.ErrTenantNotFound) {
-		return huma.Error404NotFound("tenant not found")
+		return huma.Error404NotFound(i18n.T(l, "error.tenant_not_found", nil))
 	}
 
 	var slugErr *domain.SlugConflictError
 	if errors.As(err, &slugErr) {
-		return huma.Error409Conflict(slugErr.Error())
+		return huma.Error409Conflict(i18n.T(l, "error.slug_conflict", map[string]string{"Slug": slugErr.Slug}))
 	}
 
 	var trErr *domain.TransitionError
 	if errors.As(err, &trErr) {
-		return huma.Error422UnprocessableEntity(trErr.Error())
+		return huma.Error422UnprocessableEntity(i18n.T(l, "error.transition_invalid", map[string]string{
+			"Event":   string(trErr.Event),
+			"Current": string(trErr.Current),
+		}))
 	}
 
-	return huma.Error500InternalServerError("internal server error")
+	return huma.Error500InternalServerError(i18n.T(l, "error.internal", nil))
 }

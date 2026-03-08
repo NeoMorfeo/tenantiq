@@ -26,6 +26,7 @@ import (
 	riveradapter "github.com/neomorfeo/tenantiq/internal/adapter/river"
 	"github.com/neomorfeo/tenantiq/internal/adapter/sqlite"
 	"github.com/neomorfeo/tenantiq/internal/app"
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 	"github.com/neomorfeo/tenantiq/web"
 )
 
@@ -120,6 +121,9 @@ func run() error {
 		AccessTTL:  15 * time.Minute,
 		RefreshTTL: 7 * 24 * time.Hour,
 	}
+
+	// --- i18n: override Huma validation messages and install error translator ---
+	i18n.SetupHuma()
 
 	// --- Router ---
 	router := chi.NewMux()

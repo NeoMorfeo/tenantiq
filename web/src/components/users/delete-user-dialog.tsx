@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 export const DeleteUserDialog = ({ user }: { user: UserResponse }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const deleteMutation = useDeleteUser();
@@ -46,22 +48,25 @@ export const DeleteUserDialog = ({ user }: { user: UserResponse }) => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete User</DialogTitle>
+          <DialogTitle>{t("users.deleteTitle")}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{user.name}</strong> (
-            {user.email})? This action cannot be undone.
+            <Trans
+              i18nKey="users.deleteConfirm"
+              values={{ name: user.name, email: user.email }}
+              components={{ strong: <strong /> }}
+            />
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
             disabled={deleteMutation.isPending}
             onClick={handleDelete}
           >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteMutation.isPending ? t("common.deleting") : t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

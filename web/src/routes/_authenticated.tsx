@@ -2,12 +2,14 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/app-layout";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
+  const { t } = useTranslation();
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -20,7 +22,7 @@ function AuthenticatedLayout() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t("common.loading")}</div>
       </div>
     );
   }

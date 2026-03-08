@@ -1,0 +1,65 @@
+{
+  "login": {
+    "description": "Sign in to manage your tenants",
+    "email": "Email",
+    "password": "Password",
+    "error": "Invalid email or password",
+    "submitting": "Signing in...",
+    "submit": "Sign in"
+  },
+  "common": {
+    "loading": "Loading...",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "created": "Created",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "create": "Create",
+    "creating": "Creating..."
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "nav": {
+    "users": "Users",
+    "signOut": "Sign out"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "description": "Manage your tenant lifecycle",
+    "createTenant": "Create Tenant",
+    "allTenants": "All Tenants",
+    "count_one": "{{count}} tenant",
+    "count_other": "{{count}} tenants",
+    "slug": "Slug",
+    "plan": "Plan",
+    "status": "Status",
+    "empty": "No tenants yet. Create your first one."
+  },
+  "users": {
+    "title": "Users",
+    "description": "Manage user accounts and roles",
+    "allUsers": "All Users",
+    "count_one": "{{count}} user",
+    "count_other": "{{count}} users",
+    "empty": "No users yet. Create your first one.",
+    "createUser": "Create User",
+    "createDescription": "Add a new user account.",
+    "createError": "Failed to create user. Email may already be in use.",
+    "deleteTitle": "Delete User",
+    "deleteConfirm": "Are you sure you want to delete <strong>{{name}}</strong> ({{email}})? This action cannot be undone."
+  },
+  "roles": {
+    "superadmin": "superadmin",
+    "admin": "admin",
+    "viewer": "viewer"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español"
+  }
+}

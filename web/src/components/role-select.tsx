@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 const ROLES = ["superadmin", "admin", "viewer"] as const;
 
@@ -15,6 +16,7 @@ interface RoleSelectProps {
 }
 
 export const RoleSelect = ({ value, onSave }: RoleSelectProps) => {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
 
   if (!editing) {
@@ -24,7 +26,7 @@ export const RoleSelect = ({ value, onSave }: RoleSelectProps) => {
         className="cursor-pointer"
         onClick={() => setEditing(true)}
       >
-        {value}
+        {t(`roles.${value}`)}
       </Badge>
     );
   }
@@ -42,7 +44,7 @@ export const RoleSelect = ({ value, onSave }: RoleSelectProps) => {
     >
       {ROLES.map((r) => (
         <option key={r} value={r}>
-          {r}
+          {t(`roles.${r}`)}
         </option>
       ))}
     </select>
