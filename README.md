@@ -4,9 +4,9 @@
 
 <p align="center">
   <a href="https://github.com/NeoMorfeo/tenantiq/actions/workflows/ci.yml"><img src="https://github.com/NeoMorfeo/tenantiq/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-[![codecov](https://codecov.io/gh/NeoMorfeo/tenantiq/graph/badge.svg)](https://codecov.io/gh/NeoMorfeo/tenantiq)
-[![Go](https://img.shields.io/github/go-mod/go-version/NeoMorfeo/tenantiq)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  <a href="https://codecov.io/gh/NeoMorfeo/tenantiq"><img src="https://codecov.io/gh/NeoMorfeo/tenantiq/graph/badge.svg" alt="codecov"></a>
+  <a href="https://go.dev/"><img src="https://img.shields.io/github/go-mod/go-version/NeoMorfeo/tenantiq" alt="Go"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
 Tenant lifecycle management service. A single Go binary with zero external dependencies that handles the complete lifecycle of tenants in a multi-tenant platform — from creation and provisioning to suspension and deletion.
