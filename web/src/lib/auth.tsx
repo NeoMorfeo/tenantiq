@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { TokenPair } from "@/api/model";
 
@@ -28,6 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("tenantiq_token");
     localStorage.removeItem("tenantiq_refresh");
     setToken(null);
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "tenantiq_token" && !e.newValue) {
+        setToken(null);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const value = useMemo(

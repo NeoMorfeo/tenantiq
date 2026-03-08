@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useState } from "react";
+import iconSvg from "@/assets/icon.svg";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -40,8 +41,11 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">tenantiq</CardTitle>
+        <CardHeader className="items-center text-center">
+          <img src={iconSvg} alt="tenantiq" className="h-12 w-12" />
+          <CardTitle className="text-2xl">
+            tenant<span className="text-primary">iq</span>
+          </CardTitle>
           <CardDescription>Sign in to manage your tenants</CardDescription>
         </CardHeader>
         <CardContent>
