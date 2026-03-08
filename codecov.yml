@@ -1,0 +1,31 @@
+coverage:
+  status:
+    project:
+      backend:
+        flags:
+          - backend
+      frontend:
+        flags:
+          - frontend
+    patch:
+      backend:
+        flags:
+          - backend
+      frontend:
+        flags:
+          - frontend
+
+flags:
+  backend:
+    paths:
+      - "!web/"
+    carryforward: true
+  frontend:
+    paths:
+      - web/src/
+    carryforward: true
+
+ignore:
+  - web/src/api/
+  - web/src/test/
+  - web/src/routeTree.gen.ts

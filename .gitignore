@@ -4,6 +4,7 @@
 
 # Coverage
 /coverage/
+web/coverage/
 
 # SQLite
 *.db

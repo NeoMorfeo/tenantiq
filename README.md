@@ -4,7 +4,8 @@
 
 <p align="center">
   <a href="https://github.com/NeoMorfeo/tenantiq/actions/workflows/ci.yml"><img src="https://github.com/NeoMorfeo/tenantiq/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/NeoMorfeo/tenantiq"><img src="https://codecov.io/gh/NeoMorfeo/tenantiq/graph/badge.svg" alt="codecov"></a>
+  <a href="https://codecov.io/gh/NeoMorfeo/tenantiq"><img src="https://codecov.io/gh/NeoMorfeo/tenantiq/branch/main/graph/badge.svg?flag=backend" alt="Backend coverage"></a>
+  <a href="https://codecov.io/gh/NeoMorfeo/tenantiq"><img src="https://codecov.io/gh/NeoMorfeo/tenantiq/branch/main/graph/badge.svg?flag=frontend" alt="Frontend coverage"></a>
   <a href="https://go.dev/"><img src="https://img.shields.io/github/go-mod/go-version/NeoMorfeo/tenantiq" alt="Go"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
 </p>
