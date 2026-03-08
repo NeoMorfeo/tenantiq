@@ -91,6 +91,7 @@ func Register(api huma.API, svc *app.TenantService) {
 		Path:        "/api/v1/tenants",
 		Summary:     "Create a new tenant",
 		Tags:        []string{"Tenants"},
+		Security:    BearerSecurity,
 	}, func(ctx context.Context, input *CreateTenantInput) (*CreateTenantOutput, error) {
 		tenant, err := svc.Create(ctx, input.Body.Name, input.Body.Slug, input.Body.Plan)
 		if err != nil {
@@ -105,6 +106,7 @@ func Register(api huma.API, svc *app.TenantService) {
 		Path:        "/api/v1/tenants/{id}",
 		Summary:     "Get a tenant by ID",
 		Tags:        []string{"Tenants"},
+		Security:    BearerSecurity,
 	}, func(ctx context.Context, input *GetTenantInput) (*GetTenantOutput, error) {
 		tenant, err := svc.GetByID(ctx, input.ID)
 		if err != nil {
@@ -119,6 +121,7 @@ func Register(api huma.API, svc *app.TenantService) {
 		Path:        "/api/v1/tenants",
 		Summary:     "List tenants",
 		Tags:        []string{"Tenants"},
+		Security:    BearerSecurity,
 	}, func(ctx context.Context, input *ListTenantsInput) (*ListTenantsOutput, error) {
 		filter := domain.ListFilter{
 			Limit:  input.Limit,
@@ -147,6 +150,7 @@ func Register(api huma.API, svc *app.TenantService) {
 		Path:        "/api/v1/tenants/{id}/events",
 		Summary:     "Trigger a lifecycle event",
 		Tags:        []string{"Tenants"},
+		Security:    BearerSecurity,
 	}, func(ctx context.Context, input *TransitionInput) (*TransitionOutput, error) {
 		tenant, err := svc.Transition(ctx, input.ID, domain.Event(input.Body.Event))
 		if err != nil {

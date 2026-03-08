@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -142,7 +143,7 @@ func TestRun(t *testing.T) {
 		t.Fatal("server did not start within 5 seconds")
 	}
 
-	// Verify the API responds correctly.
+	// Verify unauthenticated requests to protected endpoints return 401.
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, serverURL+"/api/v1/tenants", nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -150,8 +151,22 @@ func TestRun(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+
+	// Verify the public login endpoint is accessible (wrong creds → 401, not 404).
+	loginBody := `{"email":"wrong@example.com","password":"wrong"}`
+	req, _ = http.NewRequestWithContext(context.Background(), http.MethodPost, serverURL+"/api/v1/auth/login", strings.NewReader(loginBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("POST /api/v1/auth/login failed: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("login with wrong creds status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
 	}
 
 	// Send SIGINT to trigger graceful shutdown.

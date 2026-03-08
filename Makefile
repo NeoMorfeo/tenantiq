@@ -58,8 +58,9 @@ cover: test ## Run tests and open HTML coverage report
 	@open $(COVER_DIR)/coverage.html 2>/dev/null || xdg-open $(COVER_DIR)/coverage.html 2>/dev/null || echo "  Open $(COVER_DIR)/coverage.html in your browser"
 
 # --- Development ---
-dev: ## Run in development mode
+dev: ## Run in development mode (with default dev JWT secret)
 	@echo "==> Running in development mode..."
+	TENANTIQ_JWT_SECRET="tenantiq-dev-secret-do-not-use-in-production" \
 	go run ./cmd/tenantiq
 
 # --- Observability ---
