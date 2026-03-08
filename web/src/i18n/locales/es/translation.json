@@ -1,0 +1,65 @@
+{
+  "login": {
+    "description": "Inicia sesión para gestionar tus inquilinos",
+    "email": "Email",
+    "password": "Contraseña",
+    "error": "Email o contraseña incorrectos",
+    "submitting": "Iniciando sesión...",
+    "submit": "Iniciar sesión"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "name": "Nombre",
+    "email": "Email",
+    "role": "Rol",
+    "created": "Creado",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deleting": "Eliminando...",
+    "create": "Crear",
+    "creating": "Creando..."
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "nav": {
+    "users": "Usuarios",
+    "signOut": "Cerrar sesión"
+  },
+  "tenants": {
+    "title": "Inquilinos",
+    "description": "Gestiona el ciclo de vida de tus inquilinos",
+    "createTenant": "Crear inquilino",
+    "allTenants": "Todos los inquilinos",
+    "count_one": "{{count}} inquilino",
+    "count_other": "{{count}} inquilinos",
+    "slug": "Slug",
+    "plan": "Plan",
+    "status": "Estado",
+    "empty": "Aún no hay inquilinos. Crea el primero."
+  },
+  "users": {
+    "title": "Usuarios",
+    "description": "Gestiona las cuentas de usuario y roles",
+    "allUsers": "Todos los usuarios",
+    "count_one": "{{count}} usuario",
+    "count_other": "{{count}} usuarios",
+    "empty": "Aún no hay usuarios. Crea el primero.",
+    "createUser": "Crear usuario",
+    "createDescription": "Añadir una nueva cuenta de usuario.",
+    "createError": "Error al crear el usuario. El email puede estar ya en uso.",
+    "deleteTitle": "Eliminar usuario",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar a <strong>{{name}}</strong> ({{email}})? Esta acción no se puede deshacer."
+  },
+  "roles": {
+    "superadmin": "superadmin",
+    "admin": "admin",
+    "viewer": "lector"
+  },
+  "language": {
+    "en": "English",
+    "es": "Español"
+  }
+}

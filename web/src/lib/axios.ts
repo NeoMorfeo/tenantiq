@@ -3,10 +3,17 @@ import Axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from "axios";
+import i18n from "@/i18n/i18n";
 
 export const axios = Axios.create({
   baseURL: "",
   withCredentials: true, // Send HttpOnly cookies with every request.
+});
+
+// Send the user's language preference so the backend can translate error messages.
+axios.interceptors.request.use((config) => {
+  config.headers["Accept-Language"] = i18n.language;
+  return config;
 });
 
 // --- Silent 401 refresh with request queuing ---

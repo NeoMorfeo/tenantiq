@@ -9,6 +9,7 @@ import (
 
 	"github.com/neomorfeo/tenantiq/internal/app"
 	"github.com/neomorfeo/tenantiq/internal/domain"
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 )
 
 // --- User Response ---
@@ -111,7 +112,7 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 	}, func(ctx context.Context, input *CreateUserInput) (*CreateUserOutput, error) {
 		user, err := userSvc.CreateUser(ctx, input.Body.Email, input.Body.Name, input.Body.Password, domain.Role(input.Body.Role))
 		if err != nil {
-			return nil, toUserError(err)
+			return nil, toUserError(ctx, err)
 		}
 		return &CreateUserOutput{Body: toUserResponse(user)}, nil
 	})
@@ -124,9 +125,10 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 		Tags:        []string{"Users"},
 		Security:    superadminSecurity,
 	}, func(ctx context.Context, _ *struct{}) (*ListUsersOutput, error) {
+		l := i18n.Localizer(ctx)
 		users, err := userSvc.ListUsers(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("internal server error")
+			return nil, huma.Error500InternalServerError(i18n.T(l, "error.internal", nil))
 		}
 
 		resp := make([]UserResponse, len(users))
@@ -146,7 +148,7 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 	}, func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
 		user, err := userSvc.GetUser(ctx, input.ID)
 		if err != nil {
-			return nil, toUserError(err)
+			return nil, toUserError(ctx, err)
 		}
 		return &GetUserOutput{Body: toUserResponse(user)}, nil
 	})
@@ -167,7 +169,7 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 
 		user, err := userSvc.UpdateUser(ctx, input.ID, input.Body.Name, role)
 		if err != nil {
-			return nil, toUserError(err)
+			return nil, toUserError(ctx, err)
 		}
 		return &UpdateUserOutput{Body: toUserResponse(user)}, nil
 	})
@@ -183,7 +185,7 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 	}, func(ctx context.Context, input *DeleteUserInput) (*struct{}, error) {
 		claims, _ := ClaimsFromContext(ctx)
 		if err := userSvc.DeleteUser(ctx, input.ID, claims.UserID); err != nil {
-			return nil, toUserError(err)
+			return nil, toUserError(ctx, err)
 		}
 		return nil, nil
 	})
@@ -200,39 +202,42 @@ func RegisterPasswordUpdate(api huma.API, userSvc *app.UserService) {
 		Tags:        []string{"Users"},
 		Security:    BearerSecurity,
 	}, func(ctx context.Context, input *UpdatePasswordInput) (*struct{}, error) {
+		l := i18n.Localizer(ctx)
 		// Users can only change their own password.
 		claims, ok := ClaimsFromContext(ctx)
 		if !ok {
-			return nil, huma.Error401Unauthorized("unauthorized")
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.unauthorized", nil))
 		}
 		if claims.UserID != input.ID {
-			return nil, huma.Error403Forbidden("can only change own password")
+			return nil, huma.Error403Forbidden(i18n.T(l, "error.forbidden_password", nil))
 		}
 
 		err := userSvc.UpdatePassword(ctx, input.ID, input.Body.CurrentPassword, input.Body.NewPassword)
 		if err != nil {
 			if errors.Is(err, domain.ErrInvalidCredentials) {
-				return nil, huma.Error401Unauthorized("current password is incorrect")
+				return nil, huma.Error401Unauthorized(i18n.T(l, "error.password_incorrect", nil))
 			}
-			return nil, toUserError(err)
+			return nil, toUserError(ctx, err)
 		}
 		return nil, nil
 	})
 }
 
 // toUserError translates domain errors to Huma HTTP errors.
-func toUserError(err error) error {
+func toUserError(ctx context.Context, err error) error {
+	l := i18n.Localizer(ctx)
+
 	if errors.Is(err, domain.ErrUserNotFound) {
-		return huma.Error404NotFound("user not found")
+		return huma.Error404NotFound(i18n.T(l, "error.user_not_found", nil))
 	}
 	if errors.Is(err, domain.ErrSelfDelete) {
-		return huma.Error409Conflict(domain.ErrSelfDelete.Error())
+		return huma.Error409Conflict(i18n.T(l, "error.self_delete", nil))
 	}
 
 	var emailErr *domain.EmailConflictError
 	if errors.As(err, &emailErr) {
-		return huma.Error409Conflict(emailErr.Error())
+		return huma.Error409Conflict(i18n.T(l, "error.email_conflict", map[string]string{"Email": emailErr.Email}))
 	}
 
-	return huma.Error500InternalServerError("internal server error")
+	return huma.Error500InternalServerError(i18n.T(l, "error.internal", nil))
 }

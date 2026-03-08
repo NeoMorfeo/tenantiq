@@ -1,7 +1,9 @@
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ThemeToggle() {
+  const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -13,7 +15,7 @@ export function ThemeToggle() {
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         }`}
-        title="Light"
+        title={t("theme.light")}
       >
         <Sun className="h-4 w-4" />
       </button>
@@ -24,7 +26,7 @@ export function ThemeToggle() {
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         }`}
-        title="Dark"
+        title={t("theme.dark")}
       >
         <Moon className="h-4 w-4" />
       </button>
@@ -35,7 +37,7 @@ export function ThemeToggle() {
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         }`}
-        title="System"
+        title={t("theme.system")}
       >
         <Monitor className="h-4 w-4" />
       </button>

@@ -1,0 +1,35 @@
+{
+  "errors": {
+    "invalid_type": "Expected {{expected}}, received {{received}}",
+    "invalid_type_received_undefined": "Required",
+    "invalid_type_received_null": "Required",
+    "invalid_enum_value": "Invalid value. Expected {{options}}, received '{{received}}'",
+    "invalid_string": {
+      "email": "Invalid email",
+      "url": "Invalid URL",
+      "regex": "Invalid format"
+    },
+    "too_small": {
+      "string": {
+        "inclusive": "Must be at least {{minimum}} characters"
+      },
+      "number": {
+        "inclusive": "Must be at least {{minimum}}"
+      },
+      "array": {
+        "inclusive": "Must contain at least {{minimum}} element(s)"
+      }
+    },
+    "too_big": {
+      "string": {
+        "inclusive": "Must be at most {{maximum}} characters"
+      },
+      "number": {
+        "inclusive": "Must be at most {{maximum}}"
+      },
+      "array": {
+        "inclusive": "Must contain at most {{maximum}} element(s)"
+      }
+    }
+  }
+}

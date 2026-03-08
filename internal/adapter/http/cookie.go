@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/neomorfeo/tenantiq/internal/i18n"
 )
 
 type ctxKey string
@@ -13,13 +15,22 @@ const (
 	requestKey ctxKey = "http.Request"
 )
 
-// InjectHTTP is a chi middleware that stores the http.ResponseWriter and
-// *http.Request in the request context so Huma handlers can set cookies
-// and read request cookies.
+// InjectHTTP is a chi middleware that stores the http.ResponseWriter,
+// *http.Request, and an i18n localizer (from Accept-Language) in the
+// request context so Huma handlers can set cookies, read request
+// cookies, and translate error messages.
 func InjectHTTP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), writerKey, w)
 		ctx = context.WithValue(ctx, requestKey, r)
+
+		// Inject i18n localizer based on Accept-Language header.
+		lang := r.Header.Get("Accept-Language")
+		if lang == "" {
+			lang = "en"
+		}
+		ctx = i18n.WithLocalizer(ctx, i18n.NewLocalizer(lang))
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

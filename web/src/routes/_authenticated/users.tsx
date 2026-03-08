@@ -36,8 +36,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpDown } from "lucide-react";
 import { CreateUserDialog } from "@/components/users/create-user-dialog";
 import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
+import { useTranslation } from "react-i18next";
 
 const UsersPage = () => {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useListUsers();
   const queryClient = useQueryClient();
@@ -57,7 +59,7 @@ const UsersPage = () => {
       accessorKey: "name",
       header: ({ column }) => (
         <Button variant="ghost" size="sm" className="-ml-3" onClick={() => column.toggleSorting()}>
-          Name <ArrowUpDown className="ml-1 h-3 w-3" />
+          {t("common.name")} <ArrowUpDown className="ml-1 h-3 w-3" />
         </Button>
       ),
       cell: ({ row }) => (
@@ -69,14 +71,14 @@ const UsersPage = () => {
     },
     {
       accessorKey: "email",
-      header: "Email",
+      header: t("common.email"),
       cell: ({ getValue }) => (
         <span className="text-muted-foreground">{getValue<string>()}</span>
       ),
     },
     {
       accessorKey: "role",
-      header: "Role",
+      header: t("common.role"),
       cell: ({ row }) => (
         <RoleSelect
           value={row.original.role ?? "viewer"}
@@ -88,7 +90,7 @@ const UsersPage = () => {
       accessorKey: "created_at",
       header: ({ column }) => (
         <Button variant="ghost" size="sm" className="-ml-3" onClick={() => column.toggleSorting()}>
-          Created <ArrowUpDown className="ml-1 h-3 w-3" />
+          {t("common.created")} <ArrowUpDown className="ml-1 h-3 w-3" />
         </Button>
       ),
       cell: ({ getValue }) => {
@@ -122,17 +124,17 @@ const UsersPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage user accounts and roles</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("users.title")}</h1>
+          <p className="text-muted-foreground">{t("users.description")}</p>
         </div>
         <CreateUserDialog />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>{t("users.allUsers")}</CardTitle>
           <CardDescription>
-            {users ? `${users.length} user(s)` : "Loading..."}
+            {users ? t("users.count", { count: users.length }) : t("common.loading")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -170,7 +172,7 @@ const UsersPage = () => {
                 {users?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No users yet. Create your first one.
+                      {t("users.empty")}
                     </TableCell>
                   </TableRow>
                 )}

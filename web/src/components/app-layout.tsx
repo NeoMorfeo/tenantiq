@@ -4,9 +4,12 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useTranslation } from "react-i18next";
 import iconSvg from "@/assets/icon.svg";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -29,15 +32,16 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
             {user?.role === "superadmin" && (
               <nav className="flex items-center gap-1">
                 <Button variant="ghost" size="sm" render={<Link to="/users" />}>
-                  Users
+                  {t("nav.users")}
                 </Button>
               </nav>
             )}
           </div>
           <div className="flex items-center gap-1">
+            <LanguageSwitcher />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Sign out
+              {t("nav.signOut")}
             </Button>
           </div>
         </div>

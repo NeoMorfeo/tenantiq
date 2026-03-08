@@ -28,6 +28,7 @@ flags:
 ignore:
   - web/src/api/
   - web/src/components/ui/
+  - web/src/i18n/
   - web/src/test/
   - web/src/routeTree.gen.ts
   - web/src/main.tsx

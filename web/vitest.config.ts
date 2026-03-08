@@ -18,7 +18,7 @@ export default defineConfig({
       reporter: ["text", "json"],
       reportsDirectory: "./coverage",
       include: ["src/**"],
-      exclude: ["src/test/**", "src/api/**", "src/components/ui/**", "src/routeTree.gen.ts", "src/main.tsx", "src/routes/__root.tsx"],
+      exclude: ["src/test/**", "src/api/**", "src/components/ui/**", "src/i18n/**", "src/routeTree.gen.ts", "src/main.tsx", "src/routes/__root.tsx"],
     },
   },
 });

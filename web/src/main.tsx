@@ -6,6 +6,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/lib/auth";
 import { routeTree } from "./routeTree.gen";
+import "./i18n/i18n";
 import "./index.css";
 
 const queryClient = new QueryClient({

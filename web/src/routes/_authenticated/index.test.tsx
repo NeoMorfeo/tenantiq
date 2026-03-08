@@ -47,7 +47,7 @@ describe("DashboardPage", () => {
       expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     });
     expect(screen.getByText("Beta Inc")).toBeInTheDocument();
-    expect(screen.getByText("2 tenant(s)")).toBeInTheDocument();
+    expect(screen.getByText("2 tenants")).toBeInTheDocument();
   });
 
   it("shows empty state when no tenants", async () => {
