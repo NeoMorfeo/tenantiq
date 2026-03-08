@@ -15,6 +15,8 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: "v8",
+      reporter: ["text", "json"],
+      reportsDirectory: "./coverage",
       include: ["src/**"],
       exclude: ["src/test/**", "src/api/**", "src/routeTree.gen.ts"],
     },

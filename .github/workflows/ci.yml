@@ -14,9 +14,30 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            frontend:
+              - 'web/**'
+
   quality:
     name: Quality checks
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -38,8 +59,10 @@ jobs:
         run: make lint
 
   test:
-    name: Tests
+    name: Backend tests
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +81,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: coverage/coverage.out
+          flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
@@ -70,10 +94,43 @@ jobs:
           report_type: test_results
           fail_ci_if_error: false
 
+  test-web:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack and install pnpm
+        run: corepack enable && corepack prepare pnpm@10.26.2 --activate
+
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        working-directory: web
+        run: pnpm vitest run --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: web/coverage/coverage-final.json
+          flags: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [quality, test]
+    needs: [changes, quality, test, test-web]
+    if: always() && !failure() && !cancelled()
 
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +141,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Enable Corepack and install pnpm
         run: corepack enable && corepack prepare pnpm@10.26.2 --activate

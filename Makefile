@@ -1,4 +1,4 @@
-.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help web web-dev web-api web-install image
+.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help web web-dev web-test web-api web-install image
 .DEFAULT_GOAL := help
 
 # --- Config ---
@@ -98,6 +98,9 @@ web-install: ## Install frontend dependencies
 web: ## Build frontend for production
 	@echo "==> Building frontend..."
 	cd web && pnpm build
+
+web-test: ## Run frontend tests
+	cd web && pnpm test
 
 web-dev: ## Run frontend dev server (proxies API to :8019)
 	cd web && pnpm dev
