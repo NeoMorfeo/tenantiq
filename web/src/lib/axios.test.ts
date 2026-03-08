@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/mocks/server";
-import { axios } from "./axios";
+import { axios, customInstance } from "./axios";
 
 describe("401 interceptor", () => {
   it("refreshes token and retries on 401", async () => {
@@ -77,5 +77,77 @@ describe("401 interceptor", () => {
     );
 
     await expect(axios.get("/api/v1/tenants")).rejects.toThrow();
+  });
+
+  it("queues concurrent requests while refreshing", async () => {
+    let tenantAttempts = 0;
+    let userAttempts = 0;
+    server.use(
+      http.get("/api/v1/tenants", () => {
+        tenantAttempts++;
+        if (tenantAttempts === 1) {
+          return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+        }
+        return HttpResponse.json([{ id: "t1" }]);
+      }),
+      http.get("/api/v1/users", () => {
+        userAttempts++;
+        if (userAttempts === 1) {
+          return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+        }
+        return HttpResponse.json([{ id: "u1" }]);
+      }),
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({ access_token: "new", refresh_token: "new" }),
+      ),
+    );
+
+    // Fire two requests concurrently — second should queue behind the refresh
+    const [r1, r2] = await Promise.all([
+      axios.get("/api/v1/tenants"),
+      axios.get("/api/v1/users"),
+    ]);
+
+    expect(r1.data).toEqual([{ id: "t1" }]);
+    expect(r2.data).toEqual([{ id: "u1" }]);
+  });
+
+  it("drains queue with error when refresh fails", async () => {
+    server.use(
+      http.get("/api/v1/tenants", () =>
+        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
+      ),
+      http.get("/api/v1/users", () =>
+        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
+      ),
+      http.post("/api/v1/auth/refresh", () =>
+        HttpResponse.json({ detail: "Expired" }, { status: 401 }),
+      ),
+    );
+
+    const results = await Promise.allSettled([
+      axios.get("/api/v1/tenants"),
+      axios.get("/api/v1/users"),
+    ]);
+
+    expect(results[0].status).toBe("rejected");
+    expect(results[1].status).toBe("rejected");
+  });
+});
+
+describe("customInstance", () => {
+  it("returns response data directly", async () => {
+    server.use(
+      http.get("/api/v1/tenants", () =>
+        HttpResponse.json([{ id: "t1", name: "Acme" }]),
+      ),
+    );
+
+    const data = await customInstance<{ id: string; name: string }[]>({
+      method: "GET",
+      url: "/api/v1/tenants",
+    });
+
+    expect(data).toEqual([{ id: "t1", name: "Acme" }]);
   });
 });

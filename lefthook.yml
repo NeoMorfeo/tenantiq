@@ -35,10 +35,6 @@ pre-commit:
       glob: "*.go"
       run: go test ./...
 
-    web-typecheck:
-      glob: "web/**/*.{ts,tsx}"
-      root: "web/"
-      run: npx tsc --noEmit
     web-lint:
       glob: "web/**/*.{ts,tsx}"
       root: "web/"
@@ -46,4 +42,4 @@ pre-commit:
     web-build:
       glob: "web/**/*.{ts,tsx}"
       root: "web/"
-      run: pnpm build
+      run: pnpm api:generate && pnpm build

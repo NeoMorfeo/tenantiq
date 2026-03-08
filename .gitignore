@@ -12,6 +12,9 @@ web/coverage/
 *.db-wal
 *.db-shm
 
+# Generated (Orval)
+web/src/api/
+
 # pnpm
 .pnpm-store/
 
