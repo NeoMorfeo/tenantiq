@@ -51,8 +51,8 @@ func TestConfigFromEnv_Defaults(t *testing.T) {
 	if cfg.Environment != "development" {
 		t.Errorf("Environment = %q, want %q", cfg.Environment, "development")
 	}
-	if cfg.Exporter != "stdout" {
-		t.Errorf("Exporter = %q, want %q", cfg.Exporter, "stdout")
+	if cfg.Exporter != "noop" {
+		t.Errorf("Exporter = %q, want %q", cfg.Exporter, "noop")
 	}
 }
 

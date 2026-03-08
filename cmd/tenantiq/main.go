@@ -26,6 +26,7 @@ import (
 	riveradapter "github.com/neomorfeo/tenantiq/internal/adapter/river"
 	"github.com/neomorfeo/tenantiq/internal/adapter/sqlite"
 	"github.com/neomorfeo/tenantiq/internal/app"
+	"github.com/neomorfeo/tenantiq/web"
 )
 
 func main() {
@@ -147,6 +148,9 @@ func run() error {
 	handler.Register(api, tenantSvc)             // Bearer required
 	handler.RegisterUsers(api, userSvc)          // Superadmin required
 	handler.RegisterPasswordUpdate(api, userSvc) // Bearer required (self-only in handler)
+
+	// Serve embedded SPA for all non-API routes.
+	router.NotFound(web.Handler().ServeHTTP)
 
 	// --- Server ---
 	srv := &http.Server{

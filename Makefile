@@ -1,4 +1,4 @@
-.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help
+.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help web web-dev web-api web-install
 .DEFAULT_GOAL := help
 
 # --- Config ---
@@ -17,10 +17,13 @@ setup: ## Install dev tools and git hooks (run once after clone)
 	lefthook install
 	@echo "  Downloading tool dependencies..."
 	go mod download
+	@echo "  Installing frontend dependencies..."
+	corepack enable
+	cd web && pnpm install
 	@echo "==> Done! Pre-commit hooks are active."
 
 # --- Build ---
-build: ## Build the binary
+build: web ## Build the binary (frontend + backend)
 	@echo "==> Building $(BINARY)..."
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY) ./cmd/tenantiq
@@ -87,10 +90,28 @@ otel-stop: ## Stop Grafana LGTM stack
 	@echo "==> Stopping Grafana LGTM stack..."
 	$(CONTAINER) stop tenantiq-otel && $(CONTAINER) rm tenantiq-otel
 
+# --- Frontend ---
+web-install: ## Install frontend dependencies
+	corepack enable
+	cd web && pnpm install
+
+web: ## Build frontend for production
+	@echo "==> Building frontend..."
+	cd web && pnpm build
+
+web-dev: ## Run frontend dev server (proxies API to :8080)
+	cd web && pnpm dev
+
+web-api: ## Regenerate API client from OpenAPI spec (server must be running)
+	@echo "==> Generating API client from OpenAPI spec..."
+	curl -sf http://localhost:8080/openapi.json -o web/openapi.json
+	cd web && pnpm api:generate
+	@echo "==> API client updated."
+
 # --- Cleanup ---
 clean: ## Remove build artifacts
 	@echo "==> Cleaning..."
-	rm -rf $(BUILD_DIR) $(COVER_DIR)
+	rm -rf $(BUILD_DIR) $(COVER_DIR) web/dist
 	go clean
 
 # --- Help ---

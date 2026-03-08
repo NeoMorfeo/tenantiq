@@ -25,7 +25,7 @@ type Config struct {
 	ServiceName    string
 	ServiceVersion string
 	Environment    string // "development" or "production"
-	Exporter       string // "stdout" or "otlp"
+	Exporter       string // "noop", "stdout", or "otlp"
 	Insecure       bool   // use HTTP instead of HTTPS for OTLP
 }
 
@@ -36,7 +36,7 @@ func ConfigFromEnv() Config {
 		ServiceName:    envOrDefault("OTEL_SERVICE_NAME", "tenantiq"),
 		ServiceVersion: envOrDefault("OTEL_SERVICE_VERSION", "0.1.0"),
 		Environment:    env,
-		Exporter:       envOrDefault("OTEL_EXPORTER", "stdout"),
+		Exporter:       envOrDefault("OTEL_EXPORTER", "noop"),
 		Insecure:       env == "development",
 	}
 }
@@ -118,8 +118,10 @@ func newTracerProvider(ctx context.Context, cfg Config, res *resource.Resource) 
 		exporter, err = otlptracehttp.New(ctx, opts...)
 	case "stdout":
 		exporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
+	case "noop":
+		return trace.NewTracerProvider(trace.WithResource(res)), nil
 	default:
-		return nil, fmt.Errorf("unsupported exporter: %q (use \"stdout\" or \"otlp\")", cfg.Exporter)
+		return nil, fmt.Errorf("unsupported exporter: %q (use \"noop\", \"stdout\", or \"otlp\")", cfg.Exporter)
 	}
 
 	if err != nil {
@@ -145,8 +147,10 @@ func newMeterProvider(ctx context.Context, cfg Config, res *resource.Resource) (
 		exporter, err = otlpmetrichttp.New(ctx, opts...)
 	case "stdout":
 		exporter, err = stdoutmetric.New()
+	case "noop":
+		return metric.NewMeterProvider(metric.WithResource(res)), nil
 	default:
-		return nil, fmt.Errorf("unsupported exporter: %q (use \"stdout\" or \"otlp\")", cfg.Exporter)
+		return nil, fmt.Errorf("unsupported exporter: %q (use \"noop\", \"stdout\", or \"otlp\")", cfg.Exporter)
 	}
 
 	if err != nil {
@@ -172,8 +176,10 @@ func newLoggerProvider(ctx context.Context, cfg Config, res *resource.Resource) 
 		exporter, err = otlploghttp.New(ctx, opts...)
 	case "stdout":
 		exporter, err = stdoutlog.New()
+	case "noop":
+		return sdklog.NewLoggerProvider(sdklog.WithResource(res)), nil
 	default:
-		return nil, fmt.Errorf("unsupported exporter: %q (use \"stdout\" or \"otlp\")", cfg.Exporter)
+		return nil, fmt.Errorf("unsupported exporter: %q (use \"noop\", \"stdout\", or \"otlp\")", cfg.Exporter)
 	}
 
 	if err != nil {
