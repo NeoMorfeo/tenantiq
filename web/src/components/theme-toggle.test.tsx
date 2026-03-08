@@ -6,6 +6,10 @@ vi.mock("next-themes", () => ({
   useTheme: () => ({ theme: "system", setTheme: mockSetTheme }),
 }));
 
+vi.mock("@/api/profile/profile", () => ({
+  updatePreferences: vi.fn(() => Promise.resolve()),
+}));
+
 import { ThemeToggle } from "./theme-toggle";
 
 describe("ThemeToggle", () => {

@@ -504,3 +504,216 @@ func TestAuthHandler_Logout(t *testing.T) {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusNoContent)
 	}
 }
+
+// --- Profile Endpoints ---
+
+// newProfileTestServer creates a test server with auth middleware, user endpoints,
+// and profile endpoints. It seeds a superadmin user whose ID matches the mock
+// token's UserID ("u-1") so that profile self-service endpoints work.
+func newProfileTestServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	repo, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatalf("creating test repo: %v", err)
+	}
+	t.Cleanup(func() { repo.Close() })
+
+	userRepo := sqlite.NewUserRepository(repo.DB())
+	hasher := &testHasher{}
+	userSvc := app.NewUserService(userRepo, hasher)
+
+	// Seed user with ID "u-1" to match mockTokenService's "valid-token" claims.
+	u := domain.NewUser("u-1", "admin@example.com", "Admin", "hashed:pass", domain.RoleSuperAdmin)
+	if err := userRepo.Create(context.Background(), u); err != nil {
+		t.Fatalf("seeding user: %v", err)
+	}
+
+	router := chi.NewMux()
+	router.Use(adapter.InjectHTTP)
+	api := humachi.New(router, huma.DefaultConfig("test", "1.0.0"))
+	tokens := &mockTokenService{}
+	api.UseMiddleware(adapter.NewHumaAuthMiddleware(api, tokens))
+	adapter.RegisterProfile(api, userSvc)
+	adapter.RegisterUsers(api, userSvc)
+
+	srv := httptest.NewServer(router)
+	t.Cleanup(srv.Close)
+
+	return srv
+}
+
+func TestProfileHandler_GetProfile(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	resp := doAuthRequest(t, http.MethodGet, srv.URL+"/api/v1/users/me", "", "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var profile adapter.ProfileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if profile.ID != "u-1" {
+		t.Errorf("ID = %q, want %q", profile.ID, "u-1")
+	}
+	if profile.Theme != "system" {
+		t.Errorf("Theme = %q, want %q", profile.Theme, "system")
+	}
+	if profile.Language != "en" {
+		t.Errorf("Language = %q, want %q", profile.Language, "en")
+	}
+}
+
+func TestProfileHandler_GetProfile_Unauthenticated(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	resp := doAuthRequest(t, http.MethodGet, srv.URL+"/api/v1/users/me", "", "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestProfileHandler_UpdateProfile_Name(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"name":"Updated Admin"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var profile adapter.ProfileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if profile.Name != "Updated Admin" {
+		t.Errorf("Name = %q, want %q", profile.Name, "Updated Admin")
+	}
+}
+
+func TestProfileHandler_UpdateProfile_Email(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"email":"newemail@example.com"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var profile adapter.ProfileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if profile.Email != "newemail@example.com" {
+		t.Errorf("Email = %q, want %q", profile.Email, "newemail@example.com")
+	}
+}
+
+func TestProfileHandler_UpdateProfile_DuplicateEmail(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	// Create another user first.
+	createBody := `{"email":"other@example.com","name":"Other","password":"password123","role":"viewer"}`
+	createResp := doAuthRequest(t, http.MethodPost, srv.URL+"/api/v1/users", createBody, "valid-token")
+	createResp.Body.Close()
+
+	// Try to update profile email to the other user's email.
+	body := `{"email":"other@example.com"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusConflict {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusConflict)
+	}
+}
+
+func TestProfileHandler_UpdateProfile_Unauthenticated(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"name":"X"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}
+
+func TestProfileHandler_UpdatePreferences(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"theme":"dark","language":"es"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me/preferences", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var out struct {
+		Theme    string `json:"theme"`
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if out.Theme != "dark" {
+		t.Errorf("Theme = %q, want %q", out.Theme, "dark")
+	}
+	if out.Language != "es" {
+		t.Errorf("Language = %q, want %q", out.Language, "es")
+	}
+}
+
+func TestProfileHandler_UpdatePreferences_ThemeOnly(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"theme":"light"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me/preferences", body, "valid-token")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var out struct {
+		Theme    string `json:"theme"`
+		Language string `json:"language"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	if out.Theme != "light" {
+		t.Errorf("Theme = %q, want %q", out.Theme, "light")
+	}
+	if out.Language != "en" {
+		t.Errorf("Language = %q, want %q (should be unchanged)", out.Language, "en")
+	}
+}
+
+func TestProfileHandler_UpdatePreferences_Unauthenticated(t *testing.T) {
+	srv := newProfileTestServer(t)
+
+	body := `{"theme":"dark"}`
+	resp := doAuthRequest(t, http.MethodPatch, srv.URL+"/api/v1/users/me/preferences", body, "")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusUnauthorized)
+	}
+}

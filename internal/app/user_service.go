@@ -93,6 +93,55 @@ func (s *UserService) DeleteUser(ctx context.Context, id, callerID string) error
 	return s.users.Delete(ctx, id)
 }
 
+// UpdatePreferences updates theme and/or language for a user.
+func (s *UserService) UpdatePreferences(ctx context.Context, id string, theme *domain.Theme, language *domain.Language) (domain.User, error) {
+	user, err := s.users.GetByID(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	if theme != nil {
+		if !domain.IsValidTheme(*theme) {
+			return domain.User{}, domain.ErrInvalidPreference
+		}
+		user.Theme = *theme
+	}
+	if language != nil {
+		if !domain.IsValidLanguage(*language) {
+			return domain.User{}, domain.ErrInvalidPreference
+		}
+		user.Language = *language
+	}
+
+	if err := s.users.Update(ctx, user); err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
+}
+
+// UpdateProfile allows a user to update their own name and email.
+func (s *UserService) UpdateProfile(ctx context.Context, id string, name *string, email *string) (domain.User, error) {
+	user, err := s.users.GetByID(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	if name != nil {
+		user.Name = *name
+	}
+	if email != nil && *email != user.Email {
+		if _, err := s.users.GetByEmail(ctx, *email); err == nil {
+			return domain.User{}, &domain.EmailConflictError{Email: *email}
+		}
+		user.Email = *email
+	}
+
+	if err := s.users.Update(ctx, user); err != nil {
+		return domain.User{}, err
+	}
+	return user, nil
+}
+
 // UpdatePassword changes a user's password after verifying the current one.
 func (s *UserService) UpdatePassword(ctx context.Context, id, currentPassword, newPassword string) error {
 	user, err := s.users.GetByID(ctx, id)

@@ -242,6 +242,176 @@ func TestUpdatePassword_Success(t *testing.T) {
 	}
 }
 
+// --- UpdatePreferences ---
+
+func TestUpdatePreferences_ThemeOnly(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	theme := domain.ThemeDark
+	updated, err := svc.UpdatePreferences(context.Background(), created.ID, &theme, nil)
+	if err != nil {
+		t.Fatalf("UpdatePreferences() error = %v", err)
+	}
+	if updated.Theme != domain.ThemeDark {
+		t.Errorf("Theme = %q, want %q", updated.Theme, domain.ThemeDark)
+	}
+	if updated.Language != domain.LangEN {
+		t.Errorf("Language = %q, want %q (should be unchanged)", updated.Language, domain.LangEN)
+	}
+}
+
+func TestUpdatePreferences_LanguageOnly(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	lang := domain.LangES
+	updated, err := svc.UpdatePreferences(context.Background(), created.ID, nil, &lang)
+	if err != nil {
+		t.Fatalf("UpdatePreferences() error = %v", err)
+	}
+	if updated.Language != domain.LangES {
+		t.Errorf("Language = %q, want %q", updated.Language, domain.LangES)
+	}
+	if updated.Theme != domain.ThemeSystem {
+		t.Errorf("Theme = %q, want %q (should be unchanged)", updated.Theme, domain.ThemeSystem)
+	}
+}
+
+func TestUpdatePreferences_InvalidTheme(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	theme := domain.Theme("neon")
+	_, err := svc.UpdatePreferences(context.Background(), created.ID, &theme, nil)
+	if !errors.Is(err, domain.ErrInvalidPreference) {
+		t.Errorf("expected ErrInvalidPreference, got %v", err)
+	}
+}
+
+func TestUpdatePreferences_InvalidLanguage(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	lang := domain.Language("fr")
+	_, err := svc.UpdatePreferences(context.Background(), created.ID, nil, &lang)
+	if !errors.Is(err, domain.ErrInvalidPreference) {
+		t.Errorf("expected ErrInvalidPreference, got %v", err)
+	}
+}
+
+func TestUpdatePreferences_NotFound(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	theme := domain.ThemeDark
+	_, err := svc.UpdatePreferences(context.Background(), "nonexistent", &theme, nil)
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
+// --- UpdateProfile ---
+
+func TestUpdateProfile_NameOnly(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	name := "New Name"
+	updated, err := svc.UpdateProfile(context.Background(), created.ID, &name, nil)
+	if err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	if updated.Name != "New Name" {
+		t.Errorf("Name = %q, want %q", updated.Name, "New Name")
+	}
+	if updated.Email != "user@example.com" {
+		t.Errorf("Email = %q, want %q (should be unchanged)", updated.Email, "user@example.com")
+	}
+}
+
+func TestUpdateProfile_EmailOnly(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	email := "newemail@example.com"
+	updated, err := svc.UpdateProfile(context.Background(), created.ID, nil, &email)
+	if err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	if updated.Email != "newemail@example.com" {
+		t.Errorf("Email = %q, want %q", updated.Email, "newemail@example.com")
+	}
+	if updated.Name != "User" {
+		t.Errorf("Name = %q, want %q (should be unchanged)", updated.Name, "User")
+	}
+}
+
+func TestUpdateProfile_SameEmail(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	// Updating to the same email should be a no-op (no conflict check).
+	email := "user@example.com"
+	updated, err := svc.UpdateProfile(context.Background(), created.ID, nil, &email)
+	if err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	if updated.Email != "user@example.com" {
+		t.Errorf("Email = %q, want %q", updated.Email, "user@example.com")
+	}
+}
+
+func TestUpdateProfile_DuplicateEmail(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	_, _ = svc.CreateUser(context.Background(), "user1@example.com", "User1", "pass", domain.RoleAdmin)
+	created2, _ := svc.CreateUser(context.Background(), "user2@example.com", "User2", "pass", domain.RoleViewer)
+
+	email := "user1@example.com"
+	_, err := svc.UpdateProfile(context.Background(), created2.ID, nil, &email)
+	var emailErr *domain.EmailConflictError
+	if !errors.As(err, &emailErr) {
+		t.Fatalf("expected EmailConflictError, got %v", err)
+	}
+}
+
+func TestUpdateProfile_NotFound(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	name := "X"
+	_, err := svc.UpdateProfile(context.Background(), "nonexistent", &name, nil)
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
 func TestUpdatePassword_WrongCurrent(t *testing.T) {
 	repo := newMockUserRepo()
 	hasher := &mockHasher{}

@@ -22,9 +22,10 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO users (id, email, name, password_hash, role, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO users (id, email, name, password_hash, role, theme, language, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		u.ID, u.Email, u.Name, u.PasswordHash, string(u.Role),
+		string(u.Theme), string(u.Language),
 		u.CreatedAt.Format(timeFormat),
 		u.UpdatedAt.Format(timeFormat),
 	)
@@ -39,21 +40,21 @@ func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, id string) (domain.User, error) {
 	return r.scanUser(r.db.QueryRowContext(ctx,
-		`SELECT id, email, name, password_hash, role, created_at, updated_at
+		`SELECT id, email, name, password_hash, role, theme, language, created_at, updated_at
 		 FROM users WHERE id = ?`, id,
 	))
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	return r.scanUser(r.db.QueryRowContext(ctx,
-		`SELECT id, email, name, password_hash, role, created_at, updated_at
+		`SELECT id, email, name, password_hash, role, theme, language, created_at, updated_at
 		 FROM users WHERE email = ?`, email,
 	))
 }
 
 func (r *UserRepository) List(ctx context.Context) ([]domain.User, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, email, name, password_hash, role, created_at, updated_at
+		`SELECT id, email, name, password_hash, role, theme, language, created_at, updated_at
 		 FROM users ORDER BY created_at DESC`,
 	)
 	if err != nil {
@@ -75,9 +76,10 @@ func (r *UserRepository) List(ctx context.Context) ([]domain.User, error) {
 
 func (r *UserRepository) Update(ctx context.Context, u domain.User) error {
 	result, err := r.db.ExecContext(ctx,
-		`UPDATE users SET email = ?, name = ?, password_hash = ?, role = ?, updated_at = ?
+		`UPDATE users SET email = ?, name = ?, password_hash = ?, role = ?, theme = ?, language = ?, updated_at = ?
 		 WHERE id = ?`,
 		u.Email, u.Name, u.PasswordHash, string(u.Role),
+		string(u.Theme), string(u.Language),
 		time.Now().UTC().Format(timeFormat), u.ID,
 	)
 	if err != nil {
@@ -126,9 +128,9 @@ func (r *UserRepository) Count(ctx context.Context) (int, error) {
 
 func (r *UserRepository) scanUser(row *sql.Row) (domain.User, error) {
 	var u domain.User
-	var role, createdAt, updatedAt string
+	var role, theme, language, createdAt, updatedAt string
 
-	err := row.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &role, &createdAt, &updatedAt)
+	err := row.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &role, &theme, &language, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return domain.User{}, domain.ErrUserNotFound
@@ -137,6 +139,8 @@ func (r *UserRepository) scanUser(row *sql.Row) (domain.User, error) {
 	}
 
 	u.Role = domain.Role(role)
+	u.Theme = domain.Theme(theme)
+	u.Language = domain.Language(language)
 	u.CreatedAt, _ = time.Parse(timeFormat, createdAt)
 	u.UpdatedAt, _ = time.Parse(timeFormat, updatedAt)
 
@@ -145,14 +149,16 @@ func (r *UserRepository) scanUser(row *sql.Row) (domain.User, error) {
 
 func (r *UserRepository) scanUserFromRows(rows *sql.Rows) (domain.User, error) {
 	var u domain.User
-	var role, createdAt, updatedAt string
+	var role, theme, language, createdAt, updatedAt string
 
-	err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &role, &createdAt, &updatedAt)
+	err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &role, &theme, &language, &createdAt, &updatedAt)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("scanning user row: %w", err)
 	}
 
 	u.Role = domain.Role(role)
+	u.Theme = domain.Theme(theme)
+	u.Language = domain.Language(language)
 	u.CreatedAt, _ = time.Parse(timeFormat, createdAt)
 	u.UpdatedAt, _ = time.Parse(timeFormat, updatedAt)
 

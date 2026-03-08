@@ -11,6 +11,41 @@ const (
 	RoleViewer     Role = "viewer"
 )
 
+// Theme represents the user's UI theme preference.
+type Theme string
+
+const (
+	ThemeLight  Theme = "light"
+	ThemeDark   Theme = "dark"
+	ThemeSystem Theme = "system"
+)
+
+// IsValidTheme reports whether t is a recognized theme.
+func IsValidTheme(t Theme) bool {
+	switch t {
+	case ThemeLight, ThemeDark, ThemeSystem:
+		return true
+	}
+	return false
+}
+
+// Language represents the user's UI language preference.
+type Language string
+
+const (
+	LangEN Language = "en"
+	LangES Language = "es"
+)
+
+// IsValidLanguage reports whether l is a recognized language.
+func IsValidLanguage(l Language) bool {
+	switch l {
+	case LangEN, LangES:
+		return true
+	}
+	return false
+}
+
 // User represents an authenticated user in the system.
 type User struct {
 	ID           string
@@ -18,6 +53,8 @@ type User struct {
 	Name         string
 	PasswordHash string
 	Role         Role
+	Theme        Theme
+	Language     Language
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -31,6 +68,8 @@ func NewUser(id, email, name, passwordHash string, role Role) User {
 		Name:         name,
 		PasswordHash: passwordHash,
 		Role:         role,
+		Theme:        ThemeSystem,
+		Language:     LangEN,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

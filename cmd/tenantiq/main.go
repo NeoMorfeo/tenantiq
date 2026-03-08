@@ -161,6 +161,7 @@ func run() error {
 	handler.Register(api, tenantSvc)                      // Bearer required
 	handler.RegisterUsers(api, userSvc)                   // Superadmin required
 	handler.RegisterPasswordUpdate(api, userSvc)          // Bearer required (self-only in handler)
+	handler.RegisterProfile(api, userSvc)                 // Bearer required (self-only)
 
 	// Serve embedded SPA for all non-API routes.
 	router.NotFound(web.Handler().ServeHTTP)

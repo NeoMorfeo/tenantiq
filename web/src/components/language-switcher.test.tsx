@@ -9,6 +9,10 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("@/api/profile/profile", () => ({
+  updatePreferences: vi.fn(() => Promise.resolve()),
+}));
+
 import { LanguageSwitcher } from "./language-switcher";
 
 describe("LanguageSwitcher", () => {
