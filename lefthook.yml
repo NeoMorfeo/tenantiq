@@ -43,3 +43,7 @@ pre-commit:
       glob: "web/**/*.{ts,tsx}"
       root: "web/"
       run: npx eslint .
+    web-build:
+      glob: "web/**/*.{ts,tsx}"
+      root: "web/"
+      run: pnpm build

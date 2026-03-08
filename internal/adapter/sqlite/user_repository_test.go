@@ -167,6 +167,34 @@ func TestUserList(t *testing.T) {
 	}
 }
 
+func TestUserDelete(t *testing.T) {
+	repo := newTestUserRepo(t)
+	ctx := context.Background()
+
+	user := domain.NewUser("u-1", "admin@example.com", "Admin", "hashed", domain.RoleSuperAdmin)
+	if err := repo.Create(ctx, user); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	if err := repo.Delete(ctx, "u-1"); err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+
+	_, err := repo.GetByID(ctx, "u-1")
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound after delete, got %v", err)
+	}
+}
+
+func TestUserDelete_NotFound(t *testing.T) {
+	repo := newTestUserRepo(t)
+
+	err := repo.Delete(context.Background(), "nonexistent")
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
 func TestUserCount(t *testing.T) {
 	repo := newTestUserRepo(t)
 	ctx := context.Background()

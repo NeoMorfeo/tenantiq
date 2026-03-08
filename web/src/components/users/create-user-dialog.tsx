@@ -48,10 +48,8 @@ export const CreateUserDialog = () => {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) form.reset(); }}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-1 h-4 w-4" /> Create User
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus className="mr-1 h-4 w-4" /> Create User
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

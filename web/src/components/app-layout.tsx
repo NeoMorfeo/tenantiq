@@ -28,8 +28,8 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
             </Link>
             {user?.role === "superadmin" && (
               <nav className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/users">Users</Link>
+                <Button variant="ghost" size="sm" render={<Link to="/users" />}>
+                  Users
                 </Button>
               </nav>
             )}
