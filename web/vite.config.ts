@@ -13,8 +13,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": "http://localhost:8080",
-      "/openapi.json": "http://localhost:8080",
+      "/api": "http://localhost:8019",
+      "/openapi.json": "http://localhost:8019",
     },
   },
 });

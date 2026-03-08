@@ -37,7 +37,7 @@ func main() {
 }
 
 func run() error {
-	port := envOrDefault("PORT", "8080")
+	port := envOrDefault("PORT", "8019")
 	dbPath := envOrDefault("DATABASE_PATH", "tenantiq.db")
 	jwtSecret := envOrDefault("TENANTIQ_JWT_SECRET", "")
 	adminEmail := envOrDefault("TENANTIQ_ADMIN_EMAIL", "admin@tenantiq.local")

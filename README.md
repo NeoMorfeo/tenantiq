@@ -66,8 +66,8 @@ go build -o tenantiq ./cmd/tenantiq
 # Run
 ./tenantiq
 
-# The API will be available at http://localhost:8080
-# OpenAPI docs at http://localhost:8080/docs
+# The API will be available at http://localhost:8019
+# OpenAPI docs at http://localhost:8019/docs
 ```
 
 ## API Overview
@@ -85,7 +85,7 @@ tenantiq uses environment variables for configuration:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `8080` | HTTP server port |
+| `PORT` | `8019` | HTTP server port |
 | `DATABASE_PATH` | `tenantiq.db` | SQLite database file path |
 | `LOG_LEVEL` | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 
