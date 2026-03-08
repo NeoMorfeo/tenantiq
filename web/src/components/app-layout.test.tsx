@@ -1,47 +1,33 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
-const mockNavigate = vi.fn();
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...props }: React.PropsWithChildren<{ to: string }>) => (
     <a href={props.to}>{children}</a>
   ),
-  useNavigate: () => mockNavigate,
 }));
 
-vi.mock("@/lib/auth", () => ({
-  useAuth: () => ({
-    user: { user_id: "u-1", email: "admin@test.com", role: "superadmin" },
-    logout: vi.fn().mockResolvedValue(undefined),
-  }),
+vi.mock("@/components/user-menu", () => ({
+  UserMenu: () => <div data-testid="user-menu">UserMenu</div>,
 }));
 
 import { AppLayout } from "./app-layout";
 
 describe("AppLayout", () => {
-  beforeEach(() => mockNavigate.mockClear());
-
   it("renders header with logo and children", () => {
     render(<AppLayout><div>Page content</div></AppLayout>);
     expect(screen.getByText("iq")).toBeInTheDocument();
     expect(screen.getByText("Page content")).toBeInTheDocument();
   });
 
-  it("shows Users nav link for superadmin", () => {
+  it("renders the UserMenu component", () => {
     render(<AppLayout><div /></AppLayout>);
-    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByTestId("user-menu")).toBeInTheDocument();
   });
 
-  it("shows Sign out button", () => {
+  it("renders logo link pointing to /", () => {
     render(<AppLayout><div /></AppLayout>);
-    expect(screen.getByText("Sign out")).toBeInTheDocument();
-  });
-
-  it("navigates to /login on sign out", async () => {
-    render(<AppLayout><div /></AppLayout>);
-    fireEvent.click(screen.getByText("Sign out"));
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith({ to: "/login" });
-    });
+    const logoLink = screen.getByRole("link");
+    expect(logoLink).toHaveAttribute("href", "/");
   });
 });

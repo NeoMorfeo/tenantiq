@@ -26,6 +26,10 @@
   },
   "nav": {
     "users": "Users",
+    "profile": "Profile",
+    "theme": "Theme",
+    "language": "Language",
+    "settings": "Settings",
     "signOut": "Sign out"
   },
   "tenants": {
@@ -57,6 +61,17 @@
     "superadmin": "superadmin",
     "admin": "admin",
     "viewer": "viewer"
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "preferences": "Preferences",
+    "changePassword": "Change Password",
+    "saveSuccess": "Changes saved successfully",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "updateError": "Failed to update profile",
+    "passwordError": "Failed to change password. Check your current password."
   },
   "language": {
     "en": "English",

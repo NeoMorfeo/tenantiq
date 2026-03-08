@@ -55,6 +55,45 @@ func TestIsValidRole(t *testing.T) {
 	}
 }
 
+func TestIsValidTheme(t *testing.T) {
+	valid := []domain.Theme{
+		domain.ThemeLight,
+		domain.ThemeDark,
+		domain.ThemeSystem,
+	}
+	for _, th := range valid {
+		if !domain.IsValidTheme(th) {
+			t.Errorf("IsValidTheme(%q) = false, want true", th)
+		}
+	}
+
+	invalid := []domain.Theme{"blue", "auto", "", "DARK"}
+	for _, th := range invalid {
+		if domain.IsValidTheme(th) {
+			t.Errorf("IsValidTheme(%q) = true, want false", th)
+		}
+	}
+}
+
+func TestIsValidLanguage(t *testing.T) {
+	valid := []domain.Language{
+		domain.LangEN,
+		domain.LangES,
+	}
+	for _, l := range valid {
+		if !domain.IsValidLanguage(l) {
+			t.Errorf("IsValidLanguage(%q) = false, want true", l)
+		}
+	}
+
+	invalid := []domain.Language{"fr", "de", "", "EN"}
+	for _, l := range invalid {
+		if domain.IsValidLanguage(l) {
+			t.Errorf("IsValidLanguage(%q) = true, want false", l)
+		}
+	}
+}
+
 func TestTokenClaims_Fields(t *testing.T) {
 	claims := domain.TokenClaims{
 		UserID: "user-1",

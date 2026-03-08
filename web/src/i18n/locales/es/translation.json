@@ -26,6 +26,10 @@
   },
   "nav": {
     "users": "Usuarios",
+    "profile": "Perfil",
+    "theme": "Tema",
+    "language": "Idioma",
+    "settings": "Configuración",
     "signOut": "Cerrar sesión"
   },
   "tenants": {
@@ -57,6 +61,17 @@
     "superadmin": "superadmin",
     "admin": "admin",
     "viewer": "lector"
+  },
+  "profile": {
+    "title": "Perfil",
+    "editProfile": "Editar perfil",
+    "preferences": "Preferencias",
+    "changePassword": "Cambiar contraseña",
+    "saveSuccess": "Cambios guardados correctamente",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "updateError": "Error al actualizar el perfil",
+    "passwordError": "Error al cambiar la contraseña. Verifica tu contraseña actual."
   },
   "language": {
     "en": "English",

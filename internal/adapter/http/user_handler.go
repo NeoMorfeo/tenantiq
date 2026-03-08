@@ -223,6 +223,143 @@ func RegisterPasswordUpdate(api huma.API, userSvc *app.UserService) {
 	})
 }
 
+// --- Profile types ---
+
+type ProfileResponse struct {
+	ID        string `json:"id" doc:"User ID"`
+	Email     string `json:"email" doc:"Email address"`
+	Name      string `json:"name" doc:"Display name"`
+	Role      string `json:"role" doc:"User role"`
+	Theme     string `json:"theme" doc:"UI theme (light, dark, system)"`
+	Language  string `json:"language" doc:"UI language (en, es)"`
+	CreatedAt string `json:"created_at" doc:"Creation timestamp (ISO 8601)"`
+	UpdatedAt string `json:"updated_at" doc:"Last update timestamp (ISO 8601)"`
+}
+
+type ProfileOutput struct {
+	Body ProfileResponse
+}
+
+type UpdateProfileInput struct {
+	Body struct {
+		Name  *string `json:"name,omitempty" minLength:"1" maxLength:"255" doc:"Display name"`
+		Email *string `json:"email,omitempty" format:"email" doc:"Email address"`
+	}
+}
+
+type UpdateProfileOutput struct {
+	Body ProfileResponse
+}
+
+type UpdatePreferencesInput struct {
+	Body struct {
+		Theme    *string `json:"theme,omitempty" enum:"light,dark,system" doc:"UI theme"`
+		Language *string `json:"language,omitempty" enum:"en,es" doc:"UI language"`
+	}
+}
+
+type UpdatePreferencesOutput struct {
+	Body struct {
+		Theme    string `json:"theme" doc:"UI theme"`
+		Language string `json:"language" doc:"UI language"`
+	}
+}
+
+func toProfileResponse(u domain.User) ProfileResponse {
+	return ProfileResponse{
+		ID:        u.ID,
+		Email:     u.Email,
+		Name:      u.Name,
+		Role:      string(u.Role),
+		Theme:     string(u.Theme),
+		Language:  string(u.Language),
+		CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt: u.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+}
+
+// RegisterProfile adds self-service profile and preference endpoints.
+func RegisterProfile(api huma.API, userSvc *app.UserService) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-profile",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/users/me",
+		Summary:     "Get own profile",
+		Tags:        []string{"Profile"},
+		Security:    BearerSecurity,
+	}, func(ctx context.Context, _ *struct{}) (*ProfileOutput, error) {
+		l := i18n.Localizer(ctx)
+		claims, ok := ClaimsFromContext(ctx)
+		if !ok {
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.not_authenticated", nil))
+		}
+		user, err := userSvc.GetUser(ctx, claims.UserID)
+		if err != nil {
+			return nil, toUserError(ctx, err)
+		}
+		return &ProfileOutput{Body: toProfileResponse(user)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-profile",
+		Method:      http.MethodPatch,
+		Path:        "/api/v1/users/me",
+		Summary:     "Update own profile",
+		Tags:        []string{"Profile"},
+		Security:    BearerSecurity,
+	}, func(ctx context.Context, input *UpdateProfileInput) (*UpdateProfileOutput, error) {
+		l := i18n.Localizer(ctx)
+		claims, ok := ClaimsFromContext(ctx)
+		if !ok {
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.not_authenticated", nil))
+		}
+		user, err := userSvc.UpdateProfile(ctx, claims.UserID, input.Body.Name, input.Body.Email)
+		if err != nil {
+			return nil, toUserError(ctx, err)
+		}
+		return &UpdateProfileOutput{Body: toProfileResponse(user)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-preferences",
+		Method:      http.MethodPatch,
+		Path:        "/api/v1/users/me/preferences",
+		Summary:     "Update own preferences",
+		Tags:        []string{"Profile"},
+		Security:    BearerSecurity,
+	}, func(ctx context.Context, input *UpdatePreferencesInput) (*UpdatePreferencesOutput, error) {
+		l := i18n.Localizer(ctx)
+		claims, ok := ClaimsFromContext(ctx)
+		if !ok {
+			return nil, huma.Error401Unauthorized(i18n.T(l, "error.not_authenticated", nil))
+		}
+
+		var theme *domain.Theme
+		if input.Body.Theme != nil {
+			t := domain.Theme(*input.Body.Theme)
+			theme = &t
+		}
+		var language *domain.Language
+		if input.Body.Language != nil {
+			lang := domain.Language(*input.Body.Language)
+			language = &lang
+		}
+
+		user, err := userSvc.UpdatePreferences(ctx, claims.UserID, theme, language)
+		if err != nil {
+			if errors.Is(err, domain.ErrInvalidPreference) {
+				return nil, huma.Error422UnprocessableEntity(i18n.T(l, "validation.failed", nil))
+			}
+			return nil, toUserError(ctx, err)
+		}
+
+		out := &UpdatePreferencesOutput{}
+		out.Body.Theme = string(user.Theme)
+		out.Body.Language = string(user.Language)
+		return out, nil
+	})
+}
+
 // toUserError translates domain errors to Huma HTTP errors.
 func toUserError(ctx context.Context, err error) error {
 	l := i18n.Localizer(ctx)
