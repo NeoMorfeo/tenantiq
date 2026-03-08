@@ -26,7 +26,11 @@ axios.interceptors.response.use(undefined, async (error: AxiosError) => {
 
   // Don't intercept auth endpoints — avoids infinite loops.
   const url = original.url ?? "";
-  if (url.includes("/auth/refresh") || url.includes("/auth/login")) {
+  if (
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/login") ||
+    url.includes("/auth/me")
+  ) {
     return Promise.reject(error);
   }
 
@@ -45,8 +49,7 @@ axios.interceptors.response.use(undefined, async (error: AxiosError) => {
     return axios(original);
   } catch (refreshError) {
     drainQueue(refreshError as AxiosError);
-    // Session expired — redirect to login.
-    window.location.href = "/login";
+    // Session expired — let AuthProvider/route guard handle the redirect.
     return Promise.reject(refreshError);
   } finally {
     isRefreshing = false;
