@@ -1,0 +1,23 @@
+# Build artifacts
+bin/
+coverage/
+web/dist/
+web/node_modules/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Git
+.git/
+.github/
+
+# Dev tools
+deploy/

@@ -1,4 +1,4 @@
-.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help web web-dev web-api web-install
+.PHONY: all build test cover lint clean dev dev-otel fmt vet setup otel otel-stop help web web-dev web-api web-install image
 .DEFAULT_GOAL := help
 
 # --- Config ---
@@ -99,14 +99,19 @@ web: ## Build frontend for production
 	@echo "==> Building frontend..."
 	cd web && pnpm build
 
-web-dev: ## Run frontend dev server (proxies API to :8080)
+web-dev: ## Run frontend dev server (proxies API to :8019)
 	cd web && pnpm dev
 
 web-api: ## Regenerate API client from OpenAPI spec (server must be running)
 	@echo "==> Generating API client from OpenAPI spec..."
-	curl -sf http://localhost:8080/openapi.json -o web/openapi.json
+	curl -sf http://localhost:8019/openapi.json -o web/openapi.json
 	cd web && pnpm api:generate
 	@echo "==> API client updated."
+
+# --- Container ---
+image: ## Build container image (uses podman or docker)
+	@echo "==> Building container image..."
+	$(CONTAINER) build -t $(BINARY) .
 
 # --- Cleanup ---
 clean: ## Remove build artifacts
