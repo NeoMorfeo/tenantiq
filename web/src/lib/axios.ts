@@ -1,4 +1,8 @@
-import Axios, { type AxiosRequestConfig, type AxiosError } from "axios";
+import Axios, {
+  type AxiosRequestConfig,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
+} from "axios";
 
 export const axios = Axios.create({
   baseURL: "",
@@ -21,7 +25,9 @@ function drainQueue(error: AxiosError | null) {
 }
 
 axios.interceptors.response.use(undefined, async (error: AxiosError) => {
-  const original = error.config;
+  const original = error.config as InternalAxiosRequestConfig & {
+    _retried?: boolean;
+  };
   if (!original || error.response?.status !== 401) return Promise.reject(error);
 
   // Don't intercept auth endpoints — avoids infinite loops.
@@ -34,11 +40,17 @@ axios.interceptors.response.use(undefined, async (error: AxiosError) => {
     return Promise.reject(error);
   }
 
+  // Already retried after refresh — don't loop.
+  if (original._retried) return Promise.reject(error);
+
   // If a refresh is already in flight, queue this request.
   if (isRefreshing) {
     return new Promise((resolve, reject) => {
       pendingQueue.push({ resolve, reject });
-    }).then(() => axios(original));
+    }).then(() => {
+      original._retried = true;
+      return axios(original);
+    });
   }
 
   isRefreshing = true;
@@ -46,6 +58,7 @@ axios.interceptors.response.use(undefined, async (error: AxiosError) => {
   try {
     await axios.post("/api/v1/auth/refresh");
     drainQueue(null);
+    original._retried = true;
     return axios(original);
   } catch (refreshError) {
     drainQueue(refreshError as AxiosError);
