@@ -113,17 +113,26 @@ func run() error {
 	authSvc := app.NewAuthService(userRepo, hasher, tokens)
 	userSvc := app.NewUserService(userRepo, hasher)
 
+	// --- Cookie config ---
+	isProduction := envOrDefault("TENANTIQ_ENV", "development") == "production"
+	cookieCfg := handler.CookieConfig{
+		Secure:     isProduction,
+		AccessTTL:  15 * time.Minute,
+		RefreshTTL: 7 * 24 * time.Hour,
+	}
+
 	// --- Router ---
 	router := chi.NewMux()
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.RequestID)
+	router.Use(handler.InjectHTTP)
 
 	// Single Huma API: one OpenAPI spec, one /docs UI.
 	humaConfig := huma.DefaultConfig("tenantiq", "0.1.0")
 	humaConfig.DocsRenderer = huma.DocsRendererScalar
 
 	// Disable docs in production (TENANTIQ_ENV=production).
-	if envOrDefault("TENANTIQ_ENV", "development") == "production" {
+	if isProduction {
 		humaConfig.DocsPath = ""
 		humaConfig.OpenAPIPath = ""
 	}
@@ -144,10 +153,10 @@ func run() error {
 	api.UseMiddleware(handler.NewHumaAuthMiddleware(api, tokens))
 
 	// Register all routes on the single API.
-	handler.RegisterAuth(api, authSvc)           // Public (no Security field)
-	handler.Register(api, tenantSvc)             // Bearer required
-	handler.RegisterUsers(api, userSvc)          // Superadmin required
-	handler.RegisterPasswordUpdate(api, userSvc) // Bearer required (self-only in handler)
+	handler.RegisterAuth(api, authSvc, tokens, cookieCfg) // Public (no Security field) + cookies
+	handler.Register(api, tenantSvc)                      // Bearer required
+	handler.RegisterUsers(api, userSvc)                   // Superadmin required
+	handler.RegisterPasswordUpdate(api, userSvc)          // Bearer required (self-only in handler)
 
 	// Serve embedded SPA for all non-API routes.
 	router.NotFound(web.Handler().ServeHTTP)

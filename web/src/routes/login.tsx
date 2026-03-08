@@ -20,7 +20,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login: setAuth } = useAuth();
+  const { checkAuth } = useAuth();
   const loginMutation = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,8 +30,9 @@ function LoginPage() {
     loginMutation.mutate(
       { data: { email, password } },
       {
-        onSuccess: (data) => {
-          setAuth(data);
+        onSuccess: async () => {
+          // Server set HttpOnly cookies; refresh auth state from /me.
+          await checkAuth();
           navigate({ to: "/" });
         },
       },

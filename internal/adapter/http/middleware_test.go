@@ -43,6 +43,7 @@ func (m *mockTokenService) ValidateRefresh(token string) (domain.TokenClaims, er
 func newTestAPI(t *testing.T, security []map[string][]string) *httptest.Server {
 	t.Helper()
 	router := chi.NewMux()
+	router.Use(handler.InjectHTTP)
 	api := humachi.New(router, huma.DefaultConfig("test", "1.0.0"))
 	tokens := &mockTokenService{}
 

@@ -12,6 +12,7 @@ export * from './errorDetail';
 export * from './errorModel';
 export * from './listTenantsParams';
 export * from './loginInputBody';
+export * from './meOutputBody';
 export * from './refreshInputBody';
 export * from './tenantResponse';
 export * from './tokenPair';

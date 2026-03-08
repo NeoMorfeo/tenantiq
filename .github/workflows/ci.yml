@@ -25,6 +25,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Stub web/dist for go:embed
+        run: mkdir -p web/dist && echo '<!doctype html>' > web/dist/index.html
+
       - name: Format
         run: make fmt
 
@@ -44,6 +47,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Stub web/dist for go:embed
+        run: mkdir -p web/dist && echo '<!doctype html>' > web/dist/index.html
 
       - name: Test with coverage
         run: make test
@@ -75,6 +81,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack and install pnpm
+        run: corepack enable && corepack prepare pnpm@10.26.2 --activate
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: make build

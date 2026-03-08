@@ -1,48 +1,60 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
-import type { TokenPair } from "@/api/model";
+import { axios } from "@/lib/axios";
+
+interface AuthUser {
+  user_id: string;
+  email: string;
+  role: string;
+}
 
 interface AuthState {
-  token: string | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (pair: TokenPair) => void;
-  logout: () => void;
+  loading: boolean;
+  checkAuth: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("tenantiq_token"),
-  );
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = useCallback((pair: TokenPair) => {
-    localStorage.setItem("tenantiq_token", pair.AccessToken);
-    if (pair.RefreshToken) {
-      localStorage.setItem("tenantiq_refresh", pair.RefreshToken);
+  const checkAuth = useCallback(async () => {
+    try {
+      const { data } = await axios.get<AuthUser>("/api/v1/auth/me");
+      setUser(data);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setToken(pair.AccessToken);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("tenantiq_token");
-    localStorage.removeItem("tenantiq_refresh");
-    setToken(null);
+  const logout = useCallback(async () => {
+    try {
+      await axios.post("/api/v1/auth/logout");
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "tenantiq_token" && !e.newValue) {
-        setToken(null);
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+    checkAuth();
+  }, [checkAuth]);
 
   const value = useMemo(
-    () => ({ token, isAuthenticated: !!token, login, logout }),
-    [token, login, logout],
+    () => ({ user, isAuthenticated: !!user, loading, checkAuth, logout }),
+    [user, loading, checkAuth, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

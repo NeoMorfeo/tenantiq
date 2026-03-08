@@ -15,9 +15,7 @@ import (
 	"github.com/neomorfeo/tenantiq/internal/domain"
 )
 
-type contextKey string
-
-const claimsKey contextKey = "claims"
+const claimsKey ctxKey = "claims"
 
 // ClaimsFromContext extracts the authenticated user's claims from the context.
 func ClaimsFromContext(ctx context.Context) (domain.TokenClaims, bool) {
@@ -69,15 +67,19 @@ func NewHumaAuthMiddleware(api huma.API, tokens domain.TokenService) func(ctx hu
 			return
 		}
 
-		// Extract Bearer token from Authorization header.
-		header := ctx.Header("Authorization")
-		if header == "" || !strings.HasPrefix(header, "Bearer ") {
-			slog.WarnContext(ctx.Context(), "auth: missing or invalid header", "operation", op.OperationID)
-			_ = huma.WriteErr(api, ctx, 401, "missing or invalid authorization header")
-			return
+		// Try cookie first (SPA), then fall back to Authorization header (Scalar/API).
+		var token string
+		if cv := cookieValue(ctx.Context(), accessCookieName); cv != "" {
+			token = cv
+		} else if header := ctx.Header("Authorization"); strings.HasPrefix(header, "Bearer ") {
+			token = strings.TrimPrefix(header, "Bearer ")
 		}
 
-		token := strings.TrimPrefix(header, "Bearer ")
+		if token == "" {
+			slog.WarnContext(ctx.Context(), "auth: missing credentials", "operation", op.OperationID)
+			_ = huma.WriteErr(api, ctx, 401, "missing or invalid authorization")
+			return
+		}
 
 		claims, err := tokens.ValidateAccess(token)
 		if err != nil {

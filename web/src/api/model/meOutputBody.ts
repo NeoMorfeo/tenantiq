@@ -5,9 +5,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RefreshInputBody {
+export interface MeOutputBody {
   /** A URL to the JSON Schema for this object. */
   readonly $schema?: string;
-  /** Refresh token (optional when using cookies) */
-  refresh_token?: string;
+  /** Authenticated user email */
+  email: string;
+  /** Authenticated user role */
+  role: string;
+  /** Authenticated user ID */
+  user_id: string;
 }

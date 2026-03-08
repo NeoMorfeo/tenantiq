@@ -2,15 +2,7 @@ import Axios, { type AxiosRequestConfig } from "axios";
 
 export const axios = Axios.create({
   baseURL: "",
-});
-
-// Inject Bearer token from localStorage into every request.
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem("tenantiq_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true, // Send HttpOnly cookies with every request.
 });
 
 // Orval mutator: wraps every generated API call with our configured instance.
