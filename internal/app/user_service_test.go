@@ -109,6 +109,120 @@ func TestGetUser_NotFound(t *testing.T) {
 	}
 }
 
+// --- UpdateUser ---
+
+func TestUpdateUser_Name(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	name := "Updated Name"
+	updated, err := svc.UpdateUser(context.Background(), created.ID, &name, nil)
+	if err != nil {
+		t.Fatalf("UpdateUser() error = %v", err)
+	}
+	if updated.Name != "Updated Name" {
+		t.Errorf("Name = %q, want %q", updated.Name, "Updated Name")
+	}
+	if updated.Role != domain.RoleAdmin {
+		t.Errorf("Role = %q, want %q (should be unchanged)", updated.Role, domain.RoleAdmin)
+	}
+}
+
+func TestUpdateUser_Role(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	role := domain.RoleViewer
+	updated, err := svc.UpdateUser(context.Background(), created.ID, nil, &role)
+	if err != nil {
+		t.Fatalf("UpdateUser() error = %v", err)
+	}
+	if updated.Role != domain.RoleViewer {
+		t.Errorf("Role = %q, want %q", updated.Role, domain.RoleViewer)
+	}
+	if updated.Name != "User" {
+		t.Errorf("Name = %q, want %q (should be unchanged)", updated.Name, "User")
+	}
+}
+
+func TestUpdateUser_InvalidRole(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	role := domain.Role("root")
+	_, err := svc.UpdateUser(context.Background(), created.ID, nil, &role)
+	if err == nil {
+		t.Fatal("expected error for invalid role")
+	}
+}
+
+func TestUpdateUser_NotFound(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	name := "X"
+	_, err := svc.UpdateUser(context.Background(), "nonexistent", &name, nil)
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
+// --- DeleteUser ---
+
+func TestDeleteUser_Success(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	err := svc.DeleteUser(context.Background(), created.ID, "other-user-id")
+	if err != nil {
+		t.Fatalf("DeleteUser() error = %v", err)
+	}
+
+	_, err = svc.GetUser(context.Background(), created.ID)
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound after delete, got %v", err)
+	}
+}
+
+func TestDeleteUser_SelfDelete(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	created, _ := svc.CreateUser(context.Background(), "user@example.com", "User", "pass", domain.RoleAdmin)
+
+	err := svc.DeleteUser(context.Background(), created.ID, created.ID)
+	if !errors.Is(err, domain.ErrSelfDelete) {
+		t.Errorf("expected ErrSelfDelete, got %v", err)
+	}
+}
+
+func TestDeleteUser_NotFound(t *testing.T) {
+	repo := newMockUserRepo()
+	hasher := &mockHasher{}
+	svc := app.NewUserService(repo, hasher)
+
+	err := svc.DeleteUser(context.Background(), "nonexistent", "caller")
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("expected ErrUserNotFound, got %v", err)
+	}
+}
+
+// --- UpdatePassword ---
+
 func TestUpdatePassword_Success(t *testing.T) {
 	repo := newMockUserRepo()
 	hasher := &mockHasher{}

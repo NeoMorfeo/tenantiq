@@ -114,6 +114,18 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
+      - name: Generate API client
+        working-directory: web
+        run: pnpm api:generate
+
+      - name: Typecheck
+        working-directory: web
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: web
+        run: npx eslint .
+
       - name: Run tests with coverage
         working-directory: web
         run: pnpm vitest run --coverage
@@ -149,6 +161,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: web
         run: pnpm install --frozen-lockfile
+
+      - name: Generate API client
+        working-directory: web
+        run: pnpm api:generate
 
       - name: Build
         run: make build

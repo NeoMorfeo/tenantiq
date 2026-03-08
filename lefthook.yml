@@ -35,12 +35,11 @@ pre-commit:
       glob: "*.go"
       run: go test ./...
 
-    # Future: React/TypeScript hooks
-    # ts-lint:
-    #   glob: "*.{ts,tsx}"
-    #   root: "web/"
-    #   run: npx eslint {staged_files}
-    # ts-typecheck:
-    #   glob: "*.{ts,tsx}"
-    #   root: "web/"
-    #   run: npx tsc --noEmit
+    web-lint:
+      glob: "web/**/*.{ts,tsx}"
+      root: "web/"
+      run: npx eslint .
+    web-build:
+      glob: "web/**/*.{ts,tsx}"
+      root: "web/"
+      run: pnpm api:generate && pnpm build

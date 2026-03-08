@@ -22,4 +22,13 @@ export default defineConfig({
       },
     },
   },
+  tenantiqZod: {
+    input: "./openapi.json",
+    output: {
+      mode: "tags-split",
+      client: "zod",
+      target: "./src/api",
+      fileExtension: ".zod.ts",
+    },
+  },
 });

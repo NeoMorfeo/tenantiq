@@ -96,6 +96,8 @@ web-install: ## Install frontend dependencies
 	cd web && pnpm install
 
 web: ## Build frontend for production
+	@echo "==> Generating API client..."
+	cd web && pnpm api:generate
 	@echo "==> Building frontend..."
 	cd web && pnpm build
 

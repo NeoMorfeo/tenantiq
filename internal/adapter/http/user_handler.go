@@ -64,6 +64,26 @@ type ListUsersOutput struct {
 	Body []UserResponse
 }
 
+// --- Update User (PATCH) ---
+
+type UpdateUserInput struct {
+	ID   string `path:"id" doc:"User ID"`
+	Body struct {
+		Name *string `json:"name,omitempty" maxLength:"255" doc:"Display name"`
+		Role *string `json:"role,omitempty" enum:"superadmin,admin,viewer" doc:"User role"`
+	}
+}
+
+type UpdateUserOutput struct {
+	Body UserResponse
+}
+
+// --- Delete User ---
+
+type DeleteUserInput struct {
+	ID string `path:"id" doc:"User ID"`
+}
+
 // --- Update Password ---
 
 type UpdatePasswordInput struct {
@@ -130,6 +150,43 @@ func RegisterUsers(api huma.API, userSvc *app.UserService) {
 		}
 		return &GetUserOutput{Body: toUserResponse(user)}, nil
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-user",
+		Method:      http.MethodPatch,
+		Path:        "/api/v1/users/{id}",
+		Summary:     "Update a user's name or role",
+		Tags:        []string{"Users"},
+		Security:    superadminSecurity,
+	}, func(ctx context.Context, input *UpdateUserInput) (*UpdateUserOutput, error) {
+		var role *domain.Role
+		if input.Body.Role != nil {
+			r := domain.Role(*input.Body.Role)
+			role = &r
+		}
+
+		user, err := userSvc.UpdateUser(ctx, input.ID, input.Body.Name, role)
+		if err != nil {
+			return nil, toUserError(err)
+		}
+		return &UpdateUserOutput{Body: toUserResponse(user)}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "delete-user",
+		Method:        http.MethodDelete,
+		Path:          "/api/v1/users/{id}",
+		Summary:       "Delete a user",
+		Tags:          []string{"Users"},
+		Security:      superadminSecurity,
+		DefaultStatus: 204,
+	}, func(ctx context.Context, input *DeleteUserInput) (*struct{}, error) {
+		claims, _ := ClaimsFromContext(ctx)
+		if err := userSvc.DeleteUser(ctx, input.ID, claims.UserID); err != nil {
+			return nil, toUserError(err)
+		}
+		return nil, nil
+	})
 }
 
 // RegisterPasswordUpdate adds the password update endpoint.
@@ -167,6 +224,9 @@ func RegisterPasswordUpdate(api huma.API, userSvc *app.UserService) {
 func toUserError(err error) error {
 	if errors.Is(err, domain.ErrUserNotFound) {
 		return huma.Error404NotFound("user not found")
+	}
+	if errors.Is(err, domain.ErrSelfDelete) {
+		return huma.Error409Conflict(domain.ErrSelfDelete.Error())
 	}
 
 	var emailErr *domain.EmailConflictError
