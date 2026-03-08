@@ -61,6 +61,38 @@ func (s *UserService) ListUsers(ctx context.Context) ([]domain.User, error) {
 	return s.users.List(ctx)
 }
 
+// UpdateUser applies partial updates to a user's name and/or role.
+func (s *UserService) UpdateUser(ctx context.Context, id string, name *string, role *domain.Role) (domain.User, error) {
+	user, err := s.users.GetByID(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	if name != nil {
+		user.Name = *name
+	}
+	if role != nil {
+		if !domain.IsValidRole(*role) {
+			return domain.User{}, fmt.Errorf("invalid role %q", *role)
+		}
+		user.Role = *role
+	}
+
+	if err := s.users.Update(ctx, user); err != nil {
+		return domain.User{}, err
+	}
+
+	return user, nil
+}
+
+// DeleteUser removes a user by ID. callerID prevents self-deletion.
+func (s *UserService) DeleteUser(ctx context.Context, id, callerID string) error {
+	if id == callerID {
+		return domain.ErrSelfDelete
+	}
+	return s.users.Delete(ctx, id)
+}
+
 // UpdatePassword changes a user's password after verifying the current one.
 func (s *UserService) UpdatePassword(ctx context.Context, id, currentPassword, newPassword string) error {
 	user, err := s.users.GetByID(ctx, id)

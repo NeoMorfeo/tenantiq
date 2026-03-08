@@ -27,6 +27,7 @@ import type {
   CreateUserInputBody,
   ErrorModel,
   UpdatePasswordInputBody,
+  UpdateUserInputBody,
   UserResponse
 } from '../model';
 
@@ -216,6 +217,67 @@ export const useCreateUser = <TError = ErrorModel,
       return useMutation(getCreateUserMutationOptions(options), queryClient);
     }
     /**
+ * @summary Delete a user
+ */
+export const deleteUser = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/v1/users/${id}`, method: 'DELETE', signal
+    },
+      );
+    }
+  
+
+
+export const getDeleteUserMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteUser'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteUser(id,)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUser>>>
+    
+    export type DeleteUserMutationError = ErrorModel
+
+    /**
+ * @summary Delete a user
+ */
+export const useDeleteUser = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteUserMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Get a user by ID
  */
 export const getUser = (
@@ -306,6 +368,70 @@ export function useGetUser<TData = Awaited<ReturnType<typeof getUser>>, TError =
 
 
 /**
+ * @summary Update a user's name or role
+ */
+export const updateUser = (
+    id: string,
+    updateUserInputBody: NonReadonly<UpdateUserInputBody>,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserResponse>(
+      {url: `/api/v1/users/${id}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateUserInputBody, signal
+    },
+      );
+    }
+  
+
+
+export const getUpdateUserMutationOptions = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: string;data: NonReadonly<UpdateUserInputBody>}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: string;data: NonReadonly<UpdateUserInputBody>}, TContext> => {
+
+const mutationKey = ['updateUser'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUser>>, {id: string;data: NonReadonly<UpdateUserInputBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateUser(id,data,)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserMutationResult = NonNullable<Awaited<ReturnType<typeof updateUser>>>
+    export type UpdateUserMutationBody = NonReadonly<UpdateUserInputBody>
+    export type UpdateUserMutationError = ErrorModel
+
+    /**
+ * @summary Update a user's name or role
+ */
+export const useUpdateUser = <TError = ErrorModel,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{id: string;data: NonReadonly<UpdateUserInputBody>}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateUser>>,
+        TError,
+        {id: string;data: NonReadonly<UpdateUserInputBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Update own password
  */
 export const updatePassword = (

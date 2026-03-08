@@ -103,6 +103,20 @@ func (r *TracingUserRepository) Update(ctx context.Context, user domain.User) er
 	return err
 }
 
+func (r *TracingUserRepository) Delete(ctx context.Context, id string) error {
+	ctx, span := r.tracer.Start(ctx, "UserRepository.Delete",
+		trace.WithAttributes(attribute.String("user.id", id)),
+	)
+	defer span.End()
+
+	err := r.next.Delete(ctx, id)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return err
+}
+
 func (r *TracingUserRepository) Count(ctx context.Context) (int, error) {
 	ctx, span := r.tracer.Start(ctx, "UserRepository.Count")
 	defer span.End()

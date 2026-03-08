@@ -63,6 +63,14 @@ func (m *mockUserRepo) Update(_ context.Context, u domain.User) error {
 	return nil
 }
 
+func (m *mockUserRepo) Delete(_ context.Context, id string) error {
+	if _, ok := m.users[id]; !ok {
+		return domain.ErrUserNotFound
+	}
+	delete(m.users, id)
+	return nil
+}
+
 func (m *mockUserRepo) Count(_ context.Context) (int, error) {
 	return len(m.users), nil
 }

@@ -12,6 +12,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrForbidden          = errors.New("forbidden")
+	ErrSelfDelete         = errors.New("cannot delete own account")
 )
 
 // SlugConflictError is returned when a tenant slug is already in use.

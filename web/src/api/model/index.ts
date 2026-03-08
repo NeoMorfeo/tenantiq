@@ -19,4 +19,6 @@ export * from './tokenPair';
 export * from './transitionInputBody';
 export * from './transitionInputBodyEvent';
 export * from './updatePasswordInputBody';
+export * from './updateUserInputBody';
+export * from './updateUserInputBodyRole';
 export * from './userResponse';

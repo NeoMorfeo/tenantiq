@@ -98,6 +98,23 @@ func (r *UserRepository) Update(ctx context.Context, u domain.User) error {
 	return nil
 }
 
+func (r *UserRepository) Delete(ctx context.Context, id string) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("deleting user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+	if rows == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
 func (r *UserRepository) Count(ctx context.Context) (int, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
